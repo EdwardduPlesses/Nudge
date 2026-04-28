@@ -1,23 +1,30 @@
 {
-  "name": "budget-app",
+  "name": "nudge",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "whop-proxy --npmCommand dev:next --proxyPort 3001",
+    "dev:next": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "@whop/react": "^0.3.2",
+    "@whop/sdk": "^0.0.38",
+    "date-fns": "^4.1.0",
+    "frosted-ui": "^0.0.1-canary.77",
     "next": "16.2.4",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "recharts": "^3.8.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@whop-apps/dev-proxy": "^0.0.1-canary.117",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "tailwindcss": "^4",

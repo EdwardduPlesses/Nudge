@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
+import { withWhopAppConfig } from "@whop/react/next.config";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  turbopack: {
+    root: process.cwd(),
+  },
 };
 
-export default nextConfig;
+export default withWhopAppConfig(nextConfig);
