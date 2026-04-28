@@ -56,20 +56,52 @@ export default async function ExperiencePage({
   if (!devPreview) {
     type AccessGate = "ok" | "no_access" | "api_error";
     let gate: AccessGate = "ok";
+    let checkAccessFailure: string | null = null;
     try {
       const access = await whopsdk.users.checkAccess(experienceId, { id: userId });
       if (!access.has_access) gate = "no_access";
-    } catch {
+    } catch (err) {
       gate = "api_error";
+      checkAccessFailure = err instanceof Error ? err.message : String(err);
+      console.error("[Nudge] users.checkAccess failed", {
+        experienceId,
+        userId,
+        message: checkAccessFailure,
+        err,
+      });
     }
 
     if (gate === "api_error") {
       return (
-        <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 px-6 text-center">
+        <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-6 text-center">
           <Heading size="6">Whop API error</Heading>
-          <Text size="3" color="gray" className="max-w-md">
-            Could not verify access. Confirm <strong>WHOP_API_KEY</strong> is correct for this app in
-            production and redeploy.
+          <Text size="3" color="gray" className="max-w-md text-left">
+            The server could not call Whop to verify membership. Most often:
+          </Text>
+          <ul className="max-w-md list-disc space-y-2 pl-5 text-left text-sm text-gray-600 dark:text-gray-400">
+            <li>
+              Use an <strong>app API key</strong> from your app&apos;s developer page (Environment variables /
+              <code className="rounded bg-gray-500/10 px-1">WHOP_API_KEY</code>
+              there)—not a company API key from the global dashboard.
+            </li>
+            <li>
+              Set <code className="rounded bg-gray-500/10 px-1">WHOP_API_KEY</code> and{" "}
+              <code className="rounded bg-gray-500/10 px-1">NEXT_PUBLIC_WHOP_APP_ID</code> on your host (e.g.
+              Vercel → Production) and redeploy.
+            </li>
+            <li>
+              Key value: no surrounding quotes; paste the key as-is (the SDK adds{" "}
+              <code className="rounded bg-gray-500/10 px-1">Bearer</code> if needed).
+            </li>
+          </ul>
+          {isDev && checkAccessFailure ? (
+            <Text as="p" size="2" className="max-w-xl rounded-lg bg-red-500/10 p-3 font-mono text-left text-red-600 dark:text-red-400">
+              {checkAccessFailure}
+            </Text>
+          ) : null}
+          <Text size="2" color="gray" className="max-w-md">
+            Check your host logs for <code className="rounded bg-gray-500/10 px-1">[Nudge] users.checkAccess failed</code>{" "}
+            for full detail.
           </Text>
         </div>
       );
