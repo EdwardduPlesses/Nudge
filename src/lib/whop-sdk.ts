@@ -1,13 +1,18 @@
 import { Whop } from "@whop/sdk";
 
-function formatApiKey(key: string | undefined): string | undefined {
+/**
+ * Whop's SDK always sends `Authorization: Bearer ${apiKey}`.
+ * Strip a duplicate "Bearer " if the env var included it; never add Bearer here.
+ */
+function normalizeApiKey(key: string | undefined): string | undefined {
   if (!key?.trim()) return undefined;
-  return key.startsWith("Bearer ") ? key : `Bearer ${key}`;
+  const t = key.trim();
+  return t.toLowerCase().startsWith("bearer ") ? t.slice(7).trim() : t;
 }
 
-/** Use a placeholder during `next build` when env is not loaded; set WHOP_API_KEY locally and in deploy. */
+/** Placeholder only so `new Whop()` does not throw at import time during build. */
 const apiKeyForRuntime =
-  formatApiKey(process.env.WHOP_API_KEY) ?? "Bearer __set_WHOP_API_KEY__";
+  normalizeApiKey(process.env.WHOP_API_KEY) ?? "invalid_missing_WHOP_API_KEY";
 
 export const whopsdk = new Whop({
   apiKey: apiKeyForRuntime,
