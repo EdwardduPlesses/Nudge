@@ -72,18 +72,20 @@ export function ActivityTab() {
             Newest first. Filter by type, edit entries, or remove a row with one tap.
           </Text>
         </div>
-        <AddTransactionDialog
-          trigger={
-            <Button
-              size="3"
-              color="gold"
-              className="w-full shrink-0 shadow-sm lg:w-auto"
-              aria-label="Add income or expense"
-            >
-              Add transaction
-            </Button>
-          }
-        />
+        <div className="w-full shrink-0 lg:w-auto">
+          <AddTransactionDialog
+            trigger={
+              <Button
+                size="3"
+                color="gold"
+                className="w-full shadow-sm lg:w-auto"
+                aria-label="Add income or expense"
+              >
+                Add transaction
+              </Button>
+            }
+          />
+        </div>
       </div>
 
       <div className="flex flex-col gap-4 rounded-2xl border border-gray-600/15 bg-black/[0.02] p-4 dark:bg-white/[0.03] sm:p-5">

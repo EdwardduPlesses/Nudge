@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Heading, Select, Tabs, Text } from "frosted-ui";
 import nudgeLogo from "@/app/assets/Nuget_logo_nobackfournd.png";
 import { ActivityTab } from "@/components/nudge/activity-tab";
+import { QuickAddExpenseButton } from "@/components/nudge/quick-add-expense-button";
 import { BudgetsTab } from "@/components/nudge/budgets-tab";
 import { DashboardTab } from "@/components/nudge/dashboard-tab";
 import { GoalsTab } from "@/components/nudge/goals-tab";
@@ -110,6 +111,8 @@ export function NudgeApp(props: { devMode: boolean }) {
           </Tabs.Content>
         </div>
       </Tabs.Root>
+
+      <QuickAddExpenseButton variant="fab" />
     </div>
   );
 }

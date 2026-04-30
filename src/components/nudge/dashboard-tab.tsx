@@ -7,6 +7,8 @@ import { Badge, Button, Card, Heading, Progress, Text, TextField } from "frosted
 import { CategoryPie, WeekBarChart } from "@/components/nudge/charts";
 import { AddTransactionDialog } from "@/components/nudge/add-transaction-dialog";
 import { AiMoneyPlanCta } from "@/components/nudge/dashboard/ai-money-plan-cta";
+import { CategoryHealthList } from "@/components/nudge/dashboard/category-health-list";
+import { MonthlyRemainingCard } from "@/components/nudge/dashboard/monthly-remaining-card";
 import { SpendingVelocityCard } from "@/components/nudge/dashboard/spending-velocity-card";
 import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
@@ -97,6 +99,8 @@ export function DashboardTab() {
         </div>
       </div>
 
+      <MonthlyRemainingCard />
+
       {state.transactions.length > 0 && monthTx.length === 0 ? (
         <Text size="2" color="gray" className="leading-relaxed">
           None of your {state.transactions.length} logged{" "}
@@ -122,6 +126,8 @@ export function DashboardTab() {
           tone={planDelta >= 0 ? "positive" : "warning"}
         />
       </div>
+
+      <CategoryHealthList />
 
       <SpendingVelocityCard />
 
