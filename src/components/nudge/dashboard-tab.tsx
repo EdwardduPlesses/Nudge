@@ -1,25 +1,38 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
+import { enUS } from "date-fns/locale";
 import { Badge, Button, Card, Heading, Progress, Text, TextField } from "frosted-ui";
 import { CategoryPie, WeekBarChart } from "@/components/nudge/charts";
 import { AddTransactionDialog } from "@/components/nudge/add-transaction-dialog";
+import { AiMoneyPlanCta } from "@/components/nudge/dashboard/ai-money-plan-cta";
+import { SpendingVelocityCard } from "@/components/nudge/dashboard/spending-velocity-card";
+import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
 import {
   categorySpendThisMonth,
   dailySpendingLastWeek,
+  goalDisplaySaved,
+  overallSavingsProgress,
   spendingByCategory,
   sumExpenses,
   sumIncome,
+  totalGoalsSavedUsd,
+  totalGoalsTargetUsd,
   transactionsThisMonth,
 } from "@/lib/budget/selectors";
 
-const money = (n: number) =>
-  new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(n);
-
 export function DashboardTab() {
-  const { state, setIncomePlan, resetDemo } = useNudgeBudget();
+  const { state, setIncomePlan } = useNudgeBudget();
+  const c = useCurrency();
+  const fmt = c.formatFromUsd;
+  const [incomeDraft, setIncomeDraft] = useState("");
+
+  useEffect(() => {
+    setIncomeDraft(String(c.usdAsDisplayAmount(state.incomePlan)));
+  }, [c.currency, state.incomePlan, c.usdAsDisplayAmount]);
+
   const now = new Date();
   const monthTx = useMemo(
     () => transactionsThisMonth(state.transactions, new Date()),
@@ -37,129 +50,244 @@ export function DashboardTab() {
     [state.transactions],
   );
 
-  const totalBudget = state.categories.reduce((s, c) => s + c.budgetLimit, 0);
+  const totalBudget = state.categories.reduce((s, cat) => s + cat.budgetLimit, 0);
   const budgetUsedRatio =
     totalBudget > 0 ? Math.min(1, spent / totalBudget) : spent > 0 ? 1 : 0;
 
   const planDelta = state.incomePlan - spent;
 
+  const goalsTargetTotal = useMemo(() => totalGoalsTargetUsd(state.goals), [state.goals]);
+  const goalsSavedTotal = useMemo(
+    () => totalGoalsSavedUsd(state.goals, state.transactions),
+    [state.goals, state.transactions],
+  );
+  const savingsOverallPct = useMemo(
+    () => overallSavingsProgress(state.goals, state.transactions),
+    [state.goals, state.transactions],
+  );
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <Badge color="gold">This month</Badge>
-          <Heading size="7" className="mt-2">
+    <div className="flex flex-col gap-7">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <Badge color="gold" size="1" className="font-medium">
+            {format(now, "MMMM yyyy", { locale: enUS })}
+          </Badge>
+          <Heading size="7" className="mt-3 tracking-tight">
             Stay on track
           </Heading>
-          <Text size="3" color="gray" className="mt-1 max-w-xl">
+          <Text size="3" color="gray" className="mt-2 max-w-xl leading-relaxed">
             Cash flow, categories, and how much room you have left.
           </Text>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <AddTransactionDialog trigger={<Button size="2">Add transaction</Button>} />
-          <Button size="2" variant="soft" color="gray" onClick={resetDemo}>
-            Load demo data
-          </Button>
+        <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
+          <AiMoneyPlanCta />
+          <AddTransactionDialog
+            trigger={
+              <Button
+                size="3"
+                color="gold"
+                className="w-full shadow-sm sm:w-auto"
+                aria-label="Add income or expense"
+              >
+                Add transaction
+              </Button>
+            }
+          />
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Income" value={money(income)} hint="Recorded this month" tone="positive" />
-        <StatCard label="Spending" value={money(spent)} hint="Outflows this month" tone="neutral" />
+      <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Income" value={fmt(income)} hint="Recorded this month" tone="positive" />
+        <StatCard label="Spending" value={fmt(spent)} hint="Outflows this month" tone="neutral" />
         <StatCard
           label="Net"
-          value={money(net)}
+          value={fmt(net)}
           hint="Income minus spending"
           tone={net >= 0 ? "positive" : "warning"}
         />
         <StatCard
           label="Room vs plan"
-          value={money(planDelta)}
-          hint={`Plan: ${money(state.incomePlan)} / month`}
+          value={fmt(planDelta)}
+          hint={`Plan: ${fmt(state.incomePlan)} / month`}
           tone={planDelta >= 0 ? "positive" : "warning"}
         />
       </div>
 
-      <Card size="3" variant="surface">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <Heading size="4">Monthly income plan</Heading>
-            <Text size="2" color="gray" className="mt-1">
-              A simple anchor for what you expect to bring in—separate from logged paychecks.
+      <SpendingVelocityCard />
+
+      {state.goals.length > 0 ? (
+        <Card size="3" variant="classic" className="nudge-card-surface">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0 flex-1">
+              <Heading size="4" className="tracking-tight">
+                Savings goals
+              </Heading>
+              <div className="mt-5 space-y-2">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <Text size="2" weight="medium">
+                    Overall
+                  </Text>
+                  <Text size="2" color="gray" className="tabular-nums">
+                    {fmt(goalsSavedTotal)} / {fmt(goalsTargetTotal)}
+                  </Text>
+                </div>
+                <Progress value={savingsOverallPct * 100} color="gold" />
+              </div>
+            </div>
+            <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
+              {state.goals.map((g) => {
+                const saved = goalDisplaySaved(g, state.transactions);
+                const pct =
+                  g.targetAmount > 0 ? Math.min(100, (saved / g.targetAmount) * 100) : 0;
+                return (
+                  <div
+                    key={g.id}
+                    className="rounded-2xl border border-gray-600/15 bg-gray-900/4 p-4 dark:bg-white/4"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <Text weight="medium" className="min-w-0 leading-snug">
+                        {g.name}
+                      </Text>
+                      <Text size="2" color="gray" className="shrink-0 tabular-nums">
+                        {Math.round(pct)}%
+                      </Text>
+                    </div>
+                    <div className="mt-2 flex justify-between text-sm">
+                      <Text size="2" color="gray">
+                        Saved
+                      </Text>
+                      <Text size="2" weight="medium" className="tabular-nums">
+                        {fmt(saved)} / {fmt(g.targetAmount)}
+                      </Text>
+                    </div>
+                    <div className="mt-3">
+                      <Progress value={pct} color="gold" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </Card>
+      ) : null}
+
+      <Card size="3" variant="surface" className="nudge-card-surface">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <Heading size="4" className="tracking-tight">
+              Monthly income plan
+            </Heading>
+            <Text size="2" color="gray" className="mt-2 leading-relaxed">
+              Expected cash in for the month—separate from transactions you log.
             </Text>
           </div>
-          <div className="flex items-center gap-2">
-            <TextField.Root style={{ width: 120 }}>
+          <div className="flex w-full flex-col gap-1.5 sm:w-auto sm:flex-row sm:items-center">
+            <label className="sr-only" htmlFor="income-plan-input">
+              Monthly income {c.amountApproxLabel}
+            </label>
+            <TextField.Root className="nudge-field w-full min-w-0 sm:max-w-44">
               <TextField.Input
+                id="income-plan-input"
                 type="number"
-                value={String(state.incomePlan)}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setIncomePlan(Number.parseFloat(e.target.value) || 0)
-                }
+                inputMode="decimal"
+                min={0}
+                step={c.currency === "JPY" ? 1 : "any"}
+                autoComplete="off"
+                disabled={c.currency !== "USD" && c.rateLoading}
+                value={incomeDraft}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIncomeDraft(e.target.value)}
+                onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+                  const n = Number.parseFloat(e.target.value);
+                  if (!Number.isFinite(n) || n < 0) {
+                    setIncomeDraft(String(c.usdAsDisplayAmount(state.incomePlan)));
+                    return;
+                  }
+                  const usd = c.displayAmountAsUsd(n);
+                  setIncomePlan(usd);
+                  setIncomeDraft(String(c.usdAsDisplayAmount(usd)));
+                }}
               />
             </TextField.Root>
-            <Text size="2" color="gray">
-              USD
+            <Text size="2" color="gray" className="shrink-0 sm:pl-1">
+              {c.currency === "USD" ? "USD" : c.currency} / mo
             </Text>
           </div>
         </div>
-        <div className="mt-4">
-          <div className="mb-2 flex justify-between">
+        <div className="mt-6">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
             <Text size="2" weight="medium">
-              Budget usage (categories)
+              Budget usage
             </Text>
             <Text size="2" color="gray">
-              {Math.round(budgetUsedRatio * 100)}% of combined limits
+              {Math.round(budgetUsedRatio * 100)}% of category limits
             </Text>
           </div>
           <Progress value={budgetUsedRatio * 100} color="gold" />
         </div>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card size="3" variant="surface">
-          <Heading size="4" className="mb-1">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+        <Card size="3" variant="surface" className="nudge-card-surface min-w-0">
+          <Heading size="4" className="mb-1 tracking-tight">
             Spending by category
           </Heading>
-          <Text size="2" color="gray" className="mb-4">
-            Where money went {format(now, "MMMM yyyy")}
+          <Text size="2" color="gray" className="mb-2 leading-relaxed">
+            Where money went {format(now, "MMMM yyyy", { locale: enUS })}
           </Text>
+          {c.currency !== "USD" ? (
+            <Text size="1" color="gray" className="mb-4 leading-snug">
+              Chart values are shown in USD (canonical); numbers above use {c.currency}.
+            </Text>
+          ) : (
+            <div className="mb-6" />
+          )}
           <CategoryPie data={pie} />
         </Card>
-        <Card size="3" variant="surface">
-          <Heading size="4" className="mb-1">
+        <Card size="3" variant="surface" className="nudge-card-surface min-w-0">
+          <Heading size="4" className="mb-1 tracking-tight">
             Last 7 days
           </Heading>
-          <Text size="2" color="gray" className="mb-4">
+          <Text size="2" color="gray" className="mb-2 leading-relaxed">
             Daily expense totals
           </Text>
+          {c.currency !== "USD" ? (
+            <Text size="1" color="gray" className="mb-4 leading-snug">
+              Bar heights follow stored USD equivalents; axis and hover show {c.currency}.
+            </Text>
+          ) : (
+            <div className="mb-6" />
+          )}
           <WeekBarChart data={weekBars} />
         </Card>
       </div>
 
-      <Card size="3" variant="classic">
-        <Heading size="4" className="mb-4">
-          Category pulse
+      <Card size="3" variant="classic" className="nudge-card-surface">
+        <Heading size="4" className="mb-5 tracking-tight">
+          By category
         </Heading>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {state.categories.map((c) => {
-            const used = categorySpendThisMonth(c.id, state.transactions, now);
-            const pct = c.budgetLimit > 0 ? Math.min(100, (used / c.budgetLimit) * 100) : 0;
+        <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+          {state.categories.map((cat) => {
+            const used = categorySpendThisMonth(cat.id, state.transactions, now);
+            const pct = cat.budgetLimit > 0 ? Math.min(100, (used / cat.budgetLimit) * 100) : 0;
             return (
               <div
-                key={c.id}
-                className="rounded-xl border border-gray-600/20 bg-gray-900/5 p-4 dark:bg-white/5"
+                key={cat.id}
+                className="rounded-2xl border border-gray-600/15 bg-gray-900/4 p-4 dark:bg-white/4"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
                     <span
-                      className="inline-block h-2.5 w-2.5 rounded-full"
-                      style={{ backgroundColor: c.color }}
+                      className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: cat.color }}
+                      aria-hidden
                     />
-                    <Text weight="medium">{c.name}</Text>
+                    <Text weight="medium" className="truncate">
+                      {cat.name}
+                    </Text>
                   </div>
-                  <Text size="2" color="gray">
-                    {money(used)} / {money(c.budgetLimit)}
+                  <Text size="2" color="gray" className="shrink-0 tabular-nums">
+                    {fmt(used)} / {fmt(cat.budgetLimit)}
                   </Text>
                 </div>
                 <div className="mt-3">
@@ -180,21 +308,21 @@ function StatCard(props: {
   hint: string;
   tone: "positive" | "neutral" | "warning";
 }) {
-  const border =
+  const ring =
     props.tone === "positive"
-      ? "border-emerald-500/25"
+      ? "ring-1 ring-emerald-500/20"
       : props.tone === "warning"
-        ? "border-amber-500/30"
-        : "border-gray-500/20";
+        ? "ring-1 ring-amber-500/25"
+        : "ring-1 ring-gray-500/15";
   return (
-    <Card size="3" variant="surface" className={`border ${border}`}>
-      <Text size="2" color="gray">
+    <Card size="3" variant="surface" className={`nudge-card-surface ${ring}`}>
+      <Text size="2" color="gray" className="font-medium">
         {props.label}
       </Text>
-      <Heading size="5" className="mt-1">
+      <Heading size="5" className="mt-2 tabular-nums tracking-tight">
         {props.value}
       </Heading>
-      <Text size="1" color="gray" className="mt-2">
+      <Text size="1" color="gray" className="mt-2 leading-relaxed">
         {props.hint}
       </Text>
     </Card>

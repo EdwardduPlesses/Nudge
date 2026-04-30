@@ -12,6 +12,8 @@ export interface Transaction {
   amount: number;
   type: "income" | "expense";
   categoryId: string | null;
+  /** When set: expense increases goal balance (transfer to savings); income decreases it (withdrawal). */
+  goalId: string | null;
   note: string;
 }
 
@@ -19,6 +21,10 @@ export interface Goal {
   id: string;
   name: string;
   targetAmount: number;
+  /**
+   * Opening / legacy baseline in USD only. Progress from activity is added on top via
+   * goal-linked transactions (see `goalDisplaySaved`).
+   */
   savedAmount: number;
   deadline: string | null;
 }

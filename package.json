@@ -3,13 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "whop-proxy --npmCommand dev:next --proxyPort 3001",
-    "dev:next": "next dev --turbopack",
+    "dev": "cross-env NODE_OPTIONS=--disable-warning=DEP0060 whop-proxy --npmCommand dev:next --proxyPort 3001",
+    "dev:next": "cross-env NODE_OPTIONS=--disable-warning=DEP0060 next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:push": "npx --yes supabase db push",
+    "db:login": "npx --yes supabase login"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.105.1",
     "@whop/react": "^0.3.2",
     "@whop/sdk": "^0.0.38",
     "date-fns": "^4.1.0",
@@ -25,6 +28,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@whop-apps/dev-proxy": "^0.0.1-canary.117",
+    "cross-env": "^10.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "tailwindcss": "^4",

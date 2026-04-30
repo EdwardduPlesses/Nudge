@@ -7,26 +7,27 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
-import type { BudgetState, Goal, Transaction } from "@/lib/budget/types";
-import type { Category } from "@/lib/budget/types";
 import { defaultBudgetState } from "@/lib/budget/defaults";
-import { loadBudgetState, saveBudgetState, storageKey } from "@/lib/budget/storage";
+import type { BudgetState, Goal, Transaction } from "@/lib/budget/types";
 
 type NudgeBudgetContextValue = {
   state: BudgetState;
-  storageKey: string;
   setIncomePlan: (n: number) => void;
   addTransaction: (t: Omit<Transaction, "id">) => void;
   removeTransaction: (id: string) => void;
+  updateTransaction: (id: string, patch: Partial<Omit<Transaction, "id">>) => void;
   updateCategoryBudget: (categoryId: string, budgetLimit: number) => void;
   renameCategory: (categoryId: string, name: string) => void;
   addCategory: (name: string, budgetLimit: number) => void;
   addGoal: (g: Omit<Goal, "id">) => void;
-  updateGoalSaved: (id: string, savedAmount: number) => void;
+  updateGoal: (
+    id: string,
+    patch: Partial<Pick<Goal, "name" | "targetAmount" | "deadline">>,
+  ) => void;
   removeGoal: (id: string) => void;
-  resetDemo: () => void;
 };
 
 const Ctx = createContext<NudgeBudgetContextValue | null>(null);
@@ -34,26 +35,39 @@ const Ctx = createContext<NudgeBudgetContextValue | null>(null);
 export function NudgeBudgetProvider(props: {
   experienceId: string;
   userId: string;
+  /** Loaded on the server from Supabase (`null` when no workbook exists yet). */
+  remote: { snapshot: BudgetState | null };
   children: ReactNode;
 }) {
-  const key = useMemo(
-    () => storageKey(props.experienceId, props.userId),
-    [props.experienceId, props.userId],
+  const [state, setState] = useState<BudgetState>(() =>
+    props.remote.snapshot != null ? props.remote.snapshot : defaultBudgetState(),
   );
-  const [state, setState] = useState<BudgetState>(defaultBudgetState);
   const [hydrated, setHydrated] = useState(false);
+  const skipNextRemotePut = useRef(props.remote.snapshot != null);
 
   useEffect(() => {
-    queueMicrotask(() => {
-      setState(loadBudgetState(key));
-      setHydrated(true);
-    });
-  }, [key]);
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
     if (!hydrated) return;
-    saveBudgetState(key, state);
-  }, [hydrated, key, state]);
+    if (skipNextRemotePut.current) {
+      skipNextRemotePut.current = false;
+      return;
+    }
+    const t = setTimeout(() => {
+      const q = new URLSearchParams({ experienceId: props.experienceId });
+      void fetch(`/api/budget-state?${q}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(state),
+      }).then((res) => {
+        if (!res.ok) console.error("[Nudge] budget sync failed", res.status);
+      });
+    }, 650);
+    return () => clearTimeout(t);
+  }, [hydrated, props.experienceId, state]);
 
   const setIncomePlan = useCallback((n: number) => {
     setState((s) => ({ ...s, incomePlan: Math.max(0, n) }));
@@ -74,6 +88,13 @@ export function NudgeBudgetProvider(props: {
     setState((s) => ({
       ...s,
       transactions: s.transactions.filter((t) => t.id !== id),
+    }));
+  }, []);
+
+  const updateTransaction = useCallback((id: string, patch: Partial<Omit<Transaction, "id">>) => {
+    setState((s) => ({
+      ...s,
+      transactions: s.transactions.map((t) => (t.id === id ? { ...t, ...patch } : t)),
     }));
   }, []);
 
@@ -130,64 +151,64 @@ export function NudgeBudgetProvider(props: {
     }));
   }, []);
 
-  const updateGoalSaved = useCallback((id: string, savedAmount: number) => {
-    setState((s) => ({
-      ...s,
-      goals: s.goals.map((g) =>
-        g.id === id ? { ...g, savedAmount: Math.max(0, savedAmount) } : g,
-      ),
-    }));
-  }, []);
+  const updateGoal = useCallback(
+    (id: string, patch: Partial<Pick<Goal, "name" | "targetAmount" | "deadline">>) => {
+      setState((s) => ({
+        ...s,
+        goals: s.goals.map((g) => {
+          if (g.id !== id) return g;
+          const next = { ...g };
+          if (typeof patch.name === "string") {
+            const trimmed = patch.name.trim();
+            if (trimmed) next.name = trimmed;
+          }
+          if (typeof patch.targetAmount === "number" && Number.isFinite(patch.targetAmount)) {
+            next.targetAmount = Math.max(0, patch.targetAmount);
+          }
+          if (patch.deadline !== undefined) next.deadline = patch.deadline;
+          return next;
+        }),
+      }));
+    },
+    [],
+  );
 
   const removeGoal = useCallback((id: string) => {
-    setState((s) => ({ ...s, goals: s.goals.filter((g) => g.id !== id) }));
-  }, []);
-
-  const resetDemo = useCallback(() => {
-    const fresh = defaultBudgetState();
-    setState({
-      ...fresh,
-      transactions: seedDemoTransactions(fresh.categories),
-      goals: [
-        {
-          id: "g_emergency",
-          name: "Emergency fund",
-          targetAmount: 5000,
-          savedAmount: 1200,
-          deadline: null,
-        },
-      ],
-    });
+    setState((s) => ({
+      ...s,
+      goals: s.goals.filter((g) => g.id !== id),
+      transactions: s.transactions.map((t) =>
+        t.goalId === id ? { ...t, goalId: null } : t,
+      ),
+    }));
   }, []);
 
   const value = useMemo<NudgeBudgetContextValue>(
     () => ({
       state,
-      storageKey: key,
       setIncomePlan,
       addTransaction,
       removeTransaction,
+      updateTransaction,
       updateCategoryBudget,
       renameCategory,
       addCategory,
       addGoal,
-      updateGoalSaved,
+      updateGoal,
       removeGoal,
-      resetDemo,
     }),
     [
       state,
-      key,
       setIncomePlan,
       addTransaction,
       removeTransaction,
+      updateTransaction,
       updateCategoryBudget,
       renameCategory,
       addCategory,
       addGoal,
-      updateGoalSaved,
+      updateGoal,
       removeGoal,
-      resetDemo,
     ],
   );
 
@@ -198,46 +219,4 @@ export function useNudgeBudget() {
   const v = useContext(Ctx);
   if (!v) throw new Error("useNudgeBudget must be used within NudgeBudgetProvider");
   return v;
-}
-
-function seedDemoTransactions(categories: Category[]): Transaction[] {
-  const food = categories.find((c) => c.id === "food")?.id ?? categories[0]?.id ?? null;
-  const transport = categories.find((c) => c.id === "transport")?.id ?? null;
-  const fun = categories.find((c) => c.id === "fun")?.id ?? null;
-  const today = new Date();
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
-  return [
-    {
-      id: "demo1",
-      date: iso(today),
-      amount: 42.5,
-      type: "expense",
-      categoryId: food,
-      note: "Groceries",
-    },
-    {
-      id: "demo2",
-      date: iso(today),
-      amount: 18,
-      type: "expense",
-      categoryId: transport,
-      note: "Transit",
-    },
-    {
-      id: "demo3",
-      date: iso(today),
-      amount: 3200,
-      type: "income",
-      categoryId: null,
-      note: "Paycheck",
-    },
-    {
-      id: "demo4",
-      date: iso(new Date(today.getTime() - 86400000 * 2)),
-      amount: 64,
-      type: "expense",
-      categoryId: fun,
-      note: "Dinner out",
-    },
-  ];
 }
