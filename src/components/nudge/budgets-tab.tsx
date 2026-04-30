@@ -19,7 +19,7 @@ export function BudgetsTab() {
       <div>
         <Heading size="6">Budgets</Heading>
         <Text size="2" color="gray" className="mt-1 max-w-prose">
-          Caps are monthly. Progress compares this month&apos;s expenses in each category to its cap.
+          Monthly caps compared to spending in each category.
         </Text>
       </div>
 
@@ -48,7 +48,7 @@ export function BudgetsTab() {
                       style={{ backgroundColor: c.color }}
                     />
                   </div>
-                  <Progress value={pct} color={pct > 100 ? "ruby" : "iris"} />
+                  <Progress value={pct} color={pct > 100 ? "ruby" : "gold"} />
                 </div>
                 <div className="flex items-center gap-2">
                   <Text size="2" color="gray">

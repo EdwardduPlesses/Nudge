@@ -4,9 +4,8 @@ import "frosted-ui/styles.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Nudge — budget for Whop",
-  description:
-    "Nudge helps members track spending, category budgets, and savings goals with a calm dashboard.",
+  title: "Nudge",
+  description: "Track spending, budgets, and savings goals inside Whop.",
 };
 
 export default function RootLayout({
@@ -16,9 +15,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full">
-      <body className="min-h-full antialiased">
-        <WhopApp accentColor="jade" appearance="inherit">
-          {children}
+      <body className="flex min-h-dvh flex-col antialiased">
+        <WhopApp accentColor="gold" appearance="inherit" className="flex min-h-0 flex-1 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
         </WhopApp>
       </body>
     </html>

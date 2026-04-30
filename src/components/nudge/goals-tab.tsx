@@ -20,7 +20,7 @@ export function GoalsTab() {
       <div>
         <Heading size="6">Savings goals</Heading>
         <Text size="2" color="gray" className="mt-1">
-          Manual progress tracking—nudge yourself toward a target without linking bank accounts.
+          Track progress toward a target—no bank link required.
         </Text>
       </div>
 
@@ -47,7 +47,7 @@ export function GoalsTab() {
                     {money(g.savedAmount)} / {money(g.targetAmount)}
                   </Text>
                 </div>
-                <Progress value={pct} color="cyan" />
+                <Progress value={pct} color="gold" />
               </div>
               <div className="mt-4 flex items-center gap-2">
                 <Text size="2" color="gray">

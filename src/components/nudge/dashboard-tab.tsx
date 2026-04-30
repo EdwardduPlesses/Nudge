@@ -47,13 +47,12 @@ export function DashboardTab() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <Badge color="jade">This month</Badge>
+          <Badge color="gold">This month</Badge>
           <Heading size="7" className="mt-2">
             Stay on track
           </Heading>
           <Text size="3" color="gray" className="mt-1 max-w-xl">
-            Nudge surfaces the numbers that matter—cash flow, category mix, and a gentle view
-            of how much room you still have.
+            Cash flow, categories, and how much room you have left.
           </Text>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -113,7 +112,7 @@ export function DashboardTab() {
               {Math.round(budgetUsedRatio * 100)}% of combined limits
             </Text>
           </div>
-          <Progress value={budgetUsedRatio * 100} />
+          <Progress value={budgetUsedRatio * 100} color="gold" />
         </div>
       </Card>
 
@@ -164,7 +163,7 @@ export function DashboardTab() {
                   </Text>
                 </div>
                 <div className="mt-3">
-                  <Progress value={pct} color={pct > 95 ? "ruby" : "jade"} />
+                  <Progress value={pct} color={pct > 95 ? "ruby" : "gold"} />
                 </div>
               </div>
             );

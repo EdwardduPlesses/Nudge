@@ -57,8 +57,7 @@ export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
       <Dialog.Content size="3" style={{ maxWidth: 420 }}>
         <Dialog.Title>Add transaction</Dialog.Title>
         <Dialog.Description size="2" color="gray">
-          Log income or spending. Data is stored locally in your browser for this Whop
-          experience.
+          Log income or spending. Saved locally on this device.
         </Dialog.Description>
         <div className="mt-4 flex flex-col gap-4">
           <div>

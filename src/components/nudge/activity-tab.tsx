@@ -27,7 +27,7 @@ export function ActivityTab() {
         <div>
           <Heading size="6">Activity</Heading>
           <Text size="2" color="gray" className="mt-1">
-            Newest first. Remove mistakes with one tap.
+            Newest first. Remove a row with one tap.
           </Text>
         </div>
         <AddTransactionDialog trigger={<Button>Add transaction</Button>} />
@@ -35,7 +35,7 @@ export function ActivityTab() {
 
       {sorted.length === 0 ? (
         <Card size="3" variant="surface" className="border border-dashed border-gray-600/35">
-          <Text color="gray">No transactions yet. Add one or try “Load demo data” on Overview.</Text>
+          <Text color="gray">No transactions yet. Add one from the button above.</Text>
         </Card>
       ) : (
         <div className="flex flex-col gap-2">

@@ -69,7 +69,7 @@ export function WeekBarChart({ data }: { data: { day: string; total: number }[] 
             formatter={(value) => [fmt(Number(value ?? 0)), "Spending"]}
             contentStyle={{ borderRadius: 8 }}
           />
-          <Bar dataKey="total" radius={[6, 6, 0, 0]} fill="#12a594" />
+          <Bar dataKey="total" radius={[6, 6, 0, 0]} fill="var(--gold-primary)" />
         </BarChart>
       </ResponsiveContainer>
     </div>

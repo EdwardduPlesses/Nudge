@@ -3,11 +3,23 @@
 :root {
   --background: #fafafa;
   --foreground: #0f172a;
+  --gold-bright: #f5d97a;
+  --gold-primary: #d4af37;
+  --gold-deep: #a67c00;
+  --gold-gradient: linear-gradient(
+    135deg,
+    var(--gold-bright) 0%,
+    var(--gold-primary) 50%,
+    var(--gold-deep) 100%
+  );
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-gold-bright: var(--gold-bright);
+  --color-gold-primary: var(--gold-primary);
+  --color-gold-deep: var(--gold-deep);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -18,7 +30,25 @@
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--gold-bright) 14%, transparent) 0%,
+    color-mix(in srgb, var(--gold-primary) 10%, transparent) 50%,
+    color-mix(in srgb, var(--gold-deep) 12%, transparent) 100%
+  );
+  background-attachment: fixed;
   color: var(--foreground);
   min-height: 100%;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-image: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--gold-bright) 7%, transparent) 0%,
+      color-mix(in srgb, var(--gold-primary) 5%, transparent) 50%,
+      color-mix(in srgb, var(--gold-deep) 8%, transparent) 100%
+    );
+  }
 }
