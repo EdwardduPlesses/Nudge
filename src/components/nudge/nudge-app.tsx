@@ -9,10 +9,11 @@ import { QuickAddExpenseButton } from "@/components/nudge/quick-add-expense-butt
 import { BudgetsTab } from "@/components/nudge/budgets-tab";
 import { DashboardTab } from "@/components/nudge/dashboard-tab";
 import { GoalsTab } from "@/components/nudge/goals-tab";
+import { InsightsTab } from "@/components/nudge/insights-tab";
 import { displayCurrencyItems, useCurrency } from "@/context/currency-context";
 import type { DisplayCurrency } from "@/lib/currency-config";
 
-type TabKey = "overview" | "activity" | "budgets" | "goals";
+type TabKey = "overview" | "activity" | "insights" | "budgets" | "goals";
 
 function HeaderCurrencySelect() {
   const { currency, setCurrency } = useCurrency();
@@ -87,6 +88,9 @@ export function NudgeApp(props: { devMode: boolean }) {
             <Tabs.Trigger value="activity" className="shrink-0">
               Activity
             </Tabs.Trigger>
+            <Tabs.Trigger value="insights" className="shrink-0">
+              Insights
+            </Tabs.Trigger>
             <Tabs.Trigger value="budgets" className="shrink-0">
               Budgets
             </Tabs.Trigger>
@@ -102,6 +106,9 @@ export function NudgeApp(props: { devMode: boolean }) {
           </Tabs.Content>
           <Tabs.Content value="activity">
             <ActivityTab />
+          </Tabs.Content>
+          <Tabs.Content value="insights">
+            <InsightsTab />
           </Tabs.Content>
           <Tabs.Content value="budgets">
             <BudgetsTab />

@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, Card, Heading, Progress, Text, TextField } from "frosted-ui";
 import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
-import { categorySpendThisMonth } from "@/lib/budget/selectors";
+import {
+  categorySpendThisMonth,
+  sumExpenses,
+  transactionsThisMonth,
+} from "@/lib/budget/selectors";
 
 function CapInput(props: { categoryId: string; budgetLimitUsd: number }) {
   const c = useCurrency();
@@ -44,10 +48,23 @@ function CapInput(props: { categoryId: string; budgetLimitUsd: number }) {
 export function BudgetsTab() {
   const c = useCurrency();
   const fmt = c.formatFromUsd;
-  const { state, renameCategory, addCategory } = useNudgeBudget();
-  const now = new Date();
+  const { state, renameCategory, addCategory, setIncomePlan } = useNudgeBudget();
   const [newName, setNewName] = useState("");
   const [newCap, setNewCap] = useState("200");
+  const [incomeDraft, setIncomeDraft] = useState("");
+
+  useEffect(() => {
+    setIncomeDraft(String(c.usdAsDisplayAmount(state.incomePlan)));
+  }, [c.currency, state.incomePlan, c.usdAsDisplayAmount]);
+
+  const monthTx = useMemo(
+    () => transactionsThisMonth(state.transactions, new Date()),
+    [state.transactions],
+  );
+  const spent = useMemo(() => sumExpenses(monthTx), [monthTx]);
+  const totalBudget = state.categories.reduce((s, cat) => s + cat.budgetLimit, 0);
+  const budgetUsedRatio =
+    totalBudget > 0 ? Math.min(1, spent / totalBudget) : spent > 0 ? 1 : 0;
 
   return (
     <div className="flex flex-col gap-7">
@@ -56,13 +73,68 @@ export function BudgetsTab() {
           Budgets
         </Heading>
         <Text size="2" color="gray" className="mt-2 max-w-prose leading-relaxed">
-          Monthly caps compared to spending in each category.
+          Income plan, usage across category limits, and monthly caps.
         </Text>
       </div>
 
+      <Card size="3" variant="surface" className="nudge-card-surface p-4 sm:p-5">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <Heading size="4" className="tracking-tight">
+              Monthly income plan
+            </Heading>
+            <Text size="2" color="gray" className="mt-2 leading-relaxed">
+              Expected cash in for the month (feeds your Overview “left this month”).
+            </Text>
+          </div>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+            <label className="sr-only" htmlFor="budgets-income-plan-input">
+              Monthly income {c.amountApproxLabel}
+            </label>
+            <TextField.Root className="nudge-field w-full min-w-0 sm:max-w-44">
+              <TextField.Input
+                id="budgets-income-plan-input"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step={c.currency === "JPY" ? 1 : "any"}
+                autoComplete="off"
+                disabled={c.currency !== "USD" && c.rateLoading}
+                value={incomeDraft}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIncomeDraft(e.target.value)}
+                onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+                  const n = Number.parseFloat(e.target.value);
+                  if (!Number.isFinite(n) || n < 0) {
+                    setIncomeDraft(String(c.usdAsDisplayAmount(state.incomePlan)));
+                    return;
+                  }
+                  const usd = c.displayAmountAsUsd(n);
+                  setIncomePlan(usd);
+                  setIncomeDraft(String(c.usdAsDisplayAmount(usd)));
+                }}
+              />
+            </TextField.Root>
+            <Text size="2" color="gray" className="shrink-0 pt-0.5 sm:pt-0">
+              {c.currency === "USD" ? "USD" : c.currency} / mo
+            </Text>
+          </div>
+        </div>
+        <div className="mt-6">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+            <Text size="2" weight="medium">
+              Budget usage
+            </Text>
+            <Text size="2" color="gray" className="min-w-0 text-right">
+              {Math.round(budgetUsedRatio * 100)}% of category limits
+            </Text>
+          </div>
+          <Progress value={budgetUsedRatio * 100} color="gold" />
+        </div>
+      </Card>
+
       <div className="flex flex-col gap-4">
         {state.categories.map((cat) => {
-          const spent = categorySpendThisMonth(cat.id, state.transactions, now);
+          const spent = categorySpendThisMonth(cat.id, state.transactions, new Date());
           const pct = cat.budgetLimit > 0 ? Math.min(100, (spent / cat.budgetLimit) * 100) : 0;
           return (
             <Card key={cat.id} size="3" variant="surface" className="nudge-card-surface">
