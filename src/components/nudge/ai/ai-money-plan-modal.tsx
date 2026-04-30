@@ -44,7 +44,7 @@ export function AiMoneyPlanModal(props: {
     <Dialog.Root open={props.open} onOpenChange={handleOpenChange}>
       <Dialog.Content
         size="4"
-        className="flex max-h-[calc(100dvh-1.5rem)] max-w-[min(calc(100vw-1.25rem),40rem)] flex-col gap-4"
+        className="flex max-h-[calc(100dvh-1.5rem)] max-w-[min(calc(100vw-1.25rem),40rem)] flex-col gap-4 overflow-y-auto overscroll-contain"
       >
         <Dialog.Title>Your AI Money Plan Prompt</Dialog.Title>
         <Text size="2" color="gray" className="leading-relaxed">

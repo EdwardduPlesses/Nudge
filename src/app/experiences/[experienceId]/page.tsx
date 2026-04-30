@@ -35,6 +35,7 @@ export default async function ExperiencePage({
   }
 
   const hdrs = await headers();
+  const whopUserToken = hdrs.get("x-whop-user-token");
   const auth = await whopsdk.verifyUserToken(hdrs, { dontThrow: true });
   const isDev = process.env.NODE_ENV === "development";
   const strict = devStrictWhop();
@@ -157,7 +158,12 @@ export default async function ExperiencePage({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <NudgeBudgetProvider experienceId={experienceId} userId={userId} remote={remoteBudget}>
+      <NudgeBudgetProvider
+        experienceId={experienceId}
+        userId={userId}
+        whopUserToken={whopUserToken}
+        remote={remoteBudget}
+      >
         <CurrencyPreferenceProvider experienceId={experienceId} userId={userId}>
           <NudgeApp devMode={devPreview} />
         </CurrencyPreferenceProvider>

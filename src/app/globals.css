@@ -61,3 +61,41 @@ body {
   border-radius: 1rem;
   box-shadow: 0 1px 3px color-mix(in srgb, black 35%, transparent);
 }
+
+/**
+ * Translucent “frosted” panel — same tokens as frosted-ui Popover (translucent).
+ * Use sparingly so dense lists and forms stay easy to scan.
+ */
+.nudge-card-frosted.fui-Card.fui-variant-surface {
+  background: var(--color-panel-translucent);
+  -webkit-backdrop-filter: var(--backdrop-filter-panel);
+  backdrop-filter: var(--backdrop-filter-panel);
+  outline: 0.5px solid var(--color-popover-outline);
+  box-shadow: var(--shadow-3);
+}
+
+/* frosted-ui DatePicker: full-width field + calendar trigger aligned with other form controls */
+.nudge-date-picker-root.fui-DatePickerRoot {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nudge-date-picker-root .fui-DateFieldRoot {
+  flex: 1;
+  min-width: 0;
+  display: block;
+}
+
+.nudge-date-picker-root .fui-DateFieldInput {
+  width: 100%;
+  min-height: 2.75rem;
+}
+
+@media (min-width: 640px) {
+  .nudge-date-picker-root .fui-DateFieldInput {
+    min-height: 2.375rem;
+  }
+}

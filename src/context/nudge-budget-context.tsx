@@ -32,9 +32,22 @@ type NudgeBudgetContextValue = {
 
 const Ctx = createContext<NudgeBudgetContextValue | null>(null);
 
+const WHOP_USER_TOKEN_HEADER = "x-whop-user-token";
+
+function nudgeBudgetFetchInit(token: string | null | undefined, init?: RequestInit): RequestInit {
+  const nextHeaders = new Headers(init?.headers);
+  if (token) nextHeaders.set(WHOP_USER_TOKEN_HEADER, token.trim());
+  return { ...init, headers: nextHeaders };
+}
+
 export function NudgeBudgetProvider(props: {
   experienceId: string;
   userId: string;
+  /**
+   * Incoming `x-whop-user-token` from the document request. Browser `fetch` must send this so
+   * `/api/budget-state` verifies the same user as RSC (Whop does not add it automatically).
+   */
+  whopUserToken?: string | null;
   /** Loaded on the server from Supabase (`null` when no workbook exists yet). */
   remote: { snapshot: BudgetState | null };
   children: ReactNode;
@@ -57,17 +70,20 @@ export function NudgeBudgetProvider(props: {
     }
     const t = setTimeout(() => {
       const q = new URLSearchParams({ experienceId: props.experienceId });
-      void fetch(`/api/budget-state?${q}`, {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(state),
-      }).then((res) => {
+      void fetch(
+        `/api/budget-state?${q}`,
+        nudgeBudgetFetchInit(props.whopUserToken, {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(state),
+        }),
+      ).then((res) => {
         if (!res.ok) console.error("[Nudge] budget sync failed", res.status);
       });
     }, 650);
     return () => clearTimeout(t);
-  }, [hydrated, props.experienceId, state]);
+  }, [hydrated, props.experienceId, props.whopUserToken, state]);
 
   const setIncomePlan = useCallback((n: number) => {
     setState((s) => ({ ...s, incomePlan: Math.max(0, n) }));

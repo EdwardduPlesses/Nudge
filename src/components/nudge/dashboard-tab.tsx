@@ -97,6 +97,15 @@ export function DashboardTab() {
         </div>
       </div>
 
+      {state.transactions.length > 0 && monthTx.length === 0 ? (
+        <Text size="2" color="gray" className="leading-relaxed">
+          None of your {state.transactions.length} logged{" "}
+          {state.transactions.length === 1 ? "entry is" : "entries are"} dated in{" "}
+          {format(now, "MMMM yyyy", { locale: enUS })}. Open the Activity tab to see them, or add a
+          transaction dated this month for it to appear in the overview.
+        </Text>
+      ) : null}
+
       <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Income" value={fmt(income)} hint="Recorded this month" tone="positive" />
         <StatCard label="Spending" value={fmt(spent)} hint="Outflows this month" tone="neutral" />
@@ -124,11 +133,11 @@ export function DashboardTab() {
                 Savings goals
               </Heading>
               <div className="mt-5 space-y-2">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
                   <Text size="2" weight="medium">
                     Overall
                   </Text>
-                  <Text size="2" color="gray" className="tabular-nums">
+                  <Text size="2" color="gray" className="min-w-0 text-right tabular-nums">
                     {fmt(goalsSavedTotal)} / {fmt(goalsTargetTotal)}
                   </Text>
                 </div>
@@ -145,19 +154,19 @@ export function DashboardTab() {
                     key={g.id}
                     className="rounded-2xl border border-gray-600/15 bg-gray-900/4 p-4 dark:bg-white/4"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <Text weight="medium" className="min-w-0 leading-snug">
+                    <div className="flex items-start justify-between gap-3">
+                      <Text weight="medium" className="min-w-0 flex-1 truncate leading-snug">
                         {g.name}
                       </Text>
                       <Text size="2" color="gray" className="shrink-0 tabular-nums">
                         {Math.round(pct)}%
                       </Text>
                     </div>
-                    <div className="mt-2 flex justify-between text-sm">
-                      <Text size="2" color="gray">
+                    <div className="mt-3 flex items-baseline justify-between gap-4">
+                      <Text size="2" color="gray" className="shrink-0">
                         Saved
                       </Text>
-                      <Text size="2" weight="medium" className="tabular-nums">
+                      <Text size="2" weight="medium" className="min-w-0 text-right tabular-nums">
                         {fmt(saved)} / {fmt(g.targetAmount)}
                       </Text>
                     </div>
@@ -182,7 +191,7 @@ export function DashboardTab() {
               Expected cash in for the month—separate from transactions you log.
             </Text>
           </div>
-          <div className="flex w-full flex-col gap-1.5 sm:w-auto sm:flex-row sm:items-center">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
             <label className="sr-only" htmlFor="income-plan-input">
               Monthly income {c.amountApproxLabel}
             </label>
@@ -209,17 +218,17 @@ export function DashboardTab() {
                 }}
               />
             </TextField.Root>
-            <Text size="2" color="gray" className="shrink-0 sm:pl-1">
+            <Text size="2" color="gray" className="shrink-0 pt-0.5 sm:pt-0">
               {c.currency === "USD" ? "USD" : c.currency} / mo
             </Text>
           </div>
         </div>
         <div className="mt-6">
-          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
             <Text size="2" weight="medium">
               Budget usage
             </Text>
-            <Text size="2" color="gray">
+            <Text size="2" color="gray" className="min-w-0 text-right">
               {Math.round(budgetUsedRatio * 100)}% of category limits
             </Text>
           </div>
@@ -263,7 +272,7 @@ export function DashboardTab() {
       </div>
 
       <Card size="3" variant="classic" className="nudge-card-surface">
-        <Heading size="4" className="mb-5 tracking-tight">
+        <Heading size="4" className="mb-5 pb-2 tracking-tight">
           By category
         </Heading>
         <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
@@ -275,18 +284,22 @@ export function DashboardTab() {
                 key={cat.id}
                 className="rounded-2xl border border-gray-600/15 bg-gray-900/4 p-4 dark:bg-white/4"
               >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex min-w-0 items-center gap-2">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                  <div className="flex min-w-0 items-center gap-3">
                     <span
                       className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
                       style={{ backgroundColor: cat.color }}
                       aria-hidden
                     />
-                    <Text weight="medium" className="truncate">
+                    <Text weight="medium" className="min-w-0 truncate">
                       {cat.name}
                     </Text>
                   </div>
-                  <Text size="2" color="gray" className="shrink-0 tabular-nums">
+                  <Text
+                    size="2"
+                    color="gray"
+                    className="w-full shrink-0 tabular-nums text-right sm:w-auto sm:pt-0.5"
+                  >
                     {fmt(used)} / {fmt(cat.budgetLimit)}
                   </Text>
                 </div>
@@ -315,14 +328,14 @@ function StatCard(props: {
         ? "ring-1 ring-amber-500/25"
         : "ring-1 ring-gray-500/15";
   return (
-    <Card size="3" variant="surface" className={`nudge-card-surface ${ring}`}>
+    <Card size="3" variant="surface" className={`nudge-card-surface nudge-card-frosted ${ring}`}>
       <Text size="2" color="gray" className="font-medium">
         {props.label}
       </Text>
-      <Heading size="5" className="mt-2 tabular-nums tracking-tight">
+      <Heading size="5" className="mt-3 min-w-0 wrap-break-word tabular-nums tracking-tight">
         {props.value}
       </Heading>
-      <Text size="1" color="gray" className="mt-2 leading-relaxed">
+      <Text size="1" color="gray" className="mt-3 leading-relaxed">
         {props.hint}
       </Text>
     </Card>

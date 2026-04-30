@@ -40,7 +40,7 @@ export function NudgeApp(props: { devMode: boolean }) {
   const [tab, setTab] = useState<TabKey>("overview");
 
   return (
-    <div className="nudge-app-shell mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-5 sm:gap-7 sm:px-6 sm:py-6">
+    <div className="nudge-app-shell mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6 overflow-x-hidden px-4 py-5 sm:gap-7 sm:px-6 sm:py-6">
       <header className="flex flex-col gap-1 border-b border-gold-primary/20 pb-4 sm:pb-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">

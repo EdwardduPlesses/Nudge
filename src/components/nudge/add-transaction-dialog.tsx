@@ -2,20 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
-import {
-  Button,
-  Dialog,
-  RadioGroup,
-  Select,
-  Text,
-  TextField,
-} from "frosted-ui";
+import { Button, Dialog, RadioGroup, Select, Text, TextField } from "frosted-ui";
+import { NudgeDatePicker } from "@/components/nudge/nudge-date-picker";
 import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
 import type { Transaction } from "@/lib/budget/types";
 
 type TransactionEntryType = "expense" | "income" | "goal";
 type GoalFlow = "to_goal" | "from_goal";
+
+function transactionDateIsoUtc(dateStr: string): string {
+  const t = dateStr.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return `${t}T12:00:00.000Z`;
+  return `${format(new Date(), "yyyy-MM-dd")}T12:00:00.000Z`;
+}
 
 function TxnFormFields(props: {
   amount: string;
@@ -44,7 +44,7 @@ function TxnFormFields(props: {
   return (
     <div className="mt-6 flex flex-col gap-5">
       <div>
-        <Text size="2" weight="medium" className="mb-3 block text-foreground/80">
+        <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
           Type
         </Text>
         <RadioGroup.Root
@@ -78,7 +78,7 @@ function TxnFormFields(props: {
 
       {props.entryType === "goal" ? (
         <div>
-          <Text size="2" weight="medium" className="mb-3 block text-foreground/80">
+          <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
             Goal action
           </Text>
           <RadioGroup.Root
@@ -108,18 +108,7 @@ function TxnFormFields(props: {
         </div>
       ) : null}
 
-      <div>
-        <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
-          Date
-        </Text>
-        <TextField.Root className="nudge-field w-full">
-          <TextField.Input
-            type="date"
-            value={props.date}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => props.setDate(e.target.value)}
-          />
-        </TextField.Root>
-      </div>
+      <NudgeDatePicker label="Date" ariaLabel="Transaction date" value={props.date} onChange={props.setDate} />
 
       <div>
         <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
@@ -287,7 +276,7 @@ export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
     }
 
     addTransaction({
-      date: `${date}T12:00:00.000Z`,
+      date: transactionDateIsoUtc(date),
       amount: usd,
       type,
       categoryId: cat,
@@ -309,46 +298,54 @@ export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
       <Dialog.Trigger>{props.trigger}</Dialog.Trigger>
       <Dialog.Content
         size="3"
-        className="max-w-[min(calc(100vw-1.5rem),24rem)] sm:max-w-md"
+        className="max-h-[calc(100dvh-2rem)] max-w-[min(calc(100vw-1.5rem),24rem)] overflow-y-auto overscroll-contain sm:max-w-md"
       >
         <Dialog.Title>Add transaction</Dialog.Title>
         <Dialog.Description size="2" color="gray" className="leading-relaxed">
           Income, expenses, or goal transfers. {c.canonicalHint}
         </Dialog.Description>
 
-        <TxnFormFields
-          amount={amount}
-          setAmount={setAmount}
-          note={note}
-          setNote={setNote}
-          entryType={entryType}
-          setEntryType={handleEntryType}
-          goalFlow={goalFlow}
-          setGoalFlow={setGoalFlow}
-          categoryId={categoryId}
-          setCategoryId={setCategoryId}
-          date={date}
-          setDate={setDate}
-          categoryOptions={categoryOptions}
-          goalOptions={goalOptions}
-          goalId={goalId}
-          setGoalId={setGoalId}
-          amountApproxLabel={c.amountApproxLabel}
-          currency={c.currency}
-          rateLoading={c.rateLoading}
-          jpy={c.currency === "JPY"}
-        />
+        <form
+          className="contents"
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+        >
+          <TxnFormFields
+            amount={amount}
+            setAmount={setAmount}
+            note={note}
+            setNote={setNote}
+            entryType={entryType}
+            setEntryType={handleEntryType}
+            goalFlow={goalFlow}
+            setGoalFlow={setGoalFlow}
+            categoryId={categoryId}
+            setCategoryId={setCategoryId}
+            date={date}
+            setDate={setDate}
+            categoryOptions={categoryOptions}
+            goalOptions={goalOptions}
+            goalId={goalId}
+            setGoalId={setGoalId}
+            amountApproxLabel={c.amountApproxLabel}
+            currency={c.currency}
+            rateLoading={c.rateLoading}
+            jpy={c.currency === "JPY"}
+          />
 
-        <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Dialog.Close>
-            <Button variant="soft" color="gray" size="3" className="w-full sm:w-auto">
-              Cancel
+          <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Dialog.Close>
+              <Button type="button" variant="soft" color="gray" size="3" className="w-full sm:w-auto">
+                Cancel
+              </Button>
+            </Dialog.Close>
+            <Button type="submit" size="3" color="gold" className="w-full shadow-sm sm:w-auto">
+              Save transaction
             </Button>
-          </Dialog.Close>
-          <Button size="3" color="gold" className="w-full shadow-sm sm:w-auto" onClick={submit}>
-            Save transaction
-          </Button>
-        </div>
+          </div>
+        </form>
       </Dialog.Content>
     </Dialog.Root>
   );
@@ -464,7 +461,7 @@ export function EditTransactionDialog(props: {
     }
 
     updateTransaction(tx.id, {
-      date: `${date}T12:00:00.000Z`,
+      date: transactionDateIsoUtc(date),
       amount: usd,
       type,
       categoryId: cat,
@@ -480,46 +477,54 @@ export function EditTransactionDialog(props: {
     <Dialog.Root open={props.open} onOpenChange={props.onOpenChange}>
       <Dialog.Content
         size="3"
-        className="max-w-[min(calc(100vw-1.5rem),24rem)] sm:max-w-md"
+        className="max-h-[calc(100dvh-2rem)] max-w-[min(calc(100vw-1.5rem),24rem)] overflow-y-auto overscroll-contain sm:max-w-md"
       >
         <Dialog.Title>Edit transaction</Dialog.Title>
         <Dialog.Description size="2" color="gray" className="leading-relaxed">
           Update this entry. {c.canonicalHint}
         </Dialog.Description>
 
-        <TxnFormFields
-          amount={amount}
-          setAmount={setAmount}
-          note={note}
-          setNote={setNote}
-          entryType={entryType}
-          setEntryType={handleEntryType}
-          goalFlow={goalFlow}
-          setGoalFlow={setGoalFlow}
-          categoryId={categoryId}
-          setCategoryId={setCategoryId}
-          date={date}
-          setDate={setDate}
-          categoryOptions={categoryOptions}
-          goalOptions={goalOptions}
-          goalId={goalId}
-          setGoalId={setGoalId}
-          amountApproxLabel={c.amountApproxLabel}
-          currency={c.currency}
-          rateLoading={c.rateLoading}
-          jpy={c.currency === "JPY"}
-        />
+        <form
+          className="contents"
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+        >
+          <TxnFormFields
+            amount={amount}
+            setAmount={setAmount}
+            note={note}
+            setNote={setNote}
+            entryType={entryType}
+            setEntryType={handleEntryType}
+            goalFlow={goalFlow}
+            setGoalFlow={setGoalFlow}
+            categoryId={categoryId}
+            setCategoryId={setCategoryId}
+            date={date}
+            setDate={setDate}
+            categoryOptions={categoryOptions}
+            goalOptions={goalOptions}
+            goalId={goalId}
+            setGoalId={setGoalId}
+            amountApproxLabel={c.amountApproxLabel}
+            currency={c.currency}
+            rateLoading={c.rateLoading}
+            jpy={c.currency === "JPY"}
+          />
 
-        <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Dialog.Close>
-            <Button variant="soft" color="gray" size="3" className="w-full sm:w-auto">
-              Cancel
+          <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Dialog.Close>
+              <Button type="button" variant="soft" color="gray" size="3" className="w-full sm:w-auto">
+                Cancel
+              </Button>
+            </Dialog.Close>
+            <Button type="submit" size="3" color="gold" className="w-full shadow-sm sm:w-auto">
+              Save changes
             </Button>
-          </Dialog.Close>
-          <Button size="3" color="gold" className="w-full shadow-sm sm:w-auto" onClick={submit}>
-            Save changes
-          </Button>
-        </div>
+          </div>
+        </form>
       </Dialog.Content>
     </Dialog.Root>
   );

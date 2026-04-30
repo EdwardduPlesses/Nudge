@@ -55,15 +55,15 @@ export function SpendingVelocityCard() {
   const showMainForecast = !priorBudget && !noSpend;
 
   return (
-    <Card size="3" variant="surface" className={`nudge-card-surface ${ring}`}>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <Card size="3" variant="surface" className={`nudge-card-surface nudge-card-frosted ${ring}`}>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="min-w-0 flex-1">
           <Heading size="4" className="tracking-tight">
             Monthly Spending Forecast
           </Heading>
           {showMainForecast ? (
             <div className="mt-3 flex flex-col gap-2">
-              <Heading size="6" className="block tabular-nums tracking-tight">
+              <Heading size="6" className="min-w-0 wrap-break-word tabular-nums tracking-tight">
                 {formatFromUsd(v.forecast)}
               </Heading>
               <Text size="2" color="gray" className="block leading-relaxed">
@@ -105,30 +105,31 @@ export function SpendingVelocityCard() {
           </div>
 
           {v.safeDailyUsd != null && Number.isFinite(v.safeDailyUsd) ? (
-            <div className="mt-5">
-              <Text size="2" color="gray" weight="medium">
-                Safe daily spend ({v.remainingInclusiveDays} days left):{" "}
-                <span
-                  className={
-                    v.safeDailyUsd < 0
-                      ? "font-medium tabular-nums text-ruby-600 dark:text-ruby-400"
-                      : "font-medium tabular-nums text-gray-950 dark:text-white"
-                  }
-                >
-                  {formatFromUsd(v.safeDailyUsd)}
-                  {" / day"}
-                </span>
+            <div className="mt-5 space-y-1.5">
+              <Text size="2" color="gray" weight="medium" className="block leading-snug">
+                Safe daily spend ({v.remainingInclusiveDays} days left)
+              </Text>
+              <Text
+                size="2"
+                className={
+                  v.safeDailyUsd < 0
+                    ? "block font-medium tabular-nums text-ruby-600 dark:text-ruby-400"
+                    : "block font-medium tabular-nums text-gray-950 dark:text-white"
+                }
+              >
+                {formatFromUsd(v.safeDailyUsd)}
+                {" / day"}
               </Text>
             </div>
           ) : null}
 
           {showProgress ? (
             <div className="mt-6">
-              <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+              <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
                 <Text size="2" weight="medium">
                   Forecast vs budget
                 </Text>
-                <Text size="2" color="gray" className="tabular-nums">
+                <Text size="2" color="gray" className="min-w-0 text-right tabular-nums">
                   {formatFromUsd(v.forecast)}
                   {" / "}
                   {formatFromUsd(v.budget)}
@@ -163,7 +164,7 @@ function VelocityMetric(props: { label: string; value: string }) {
       <Text size="2" color="gray" className="block leading-snug">
         {props.label}
       </Text>
-      <Text size="5" weight="medium" className="block min-w-0 tabular-nums tracking-tight">
+      <Text size="5" weight="medium" className="block min-w-0 wrap-break-word tabular-nums tracking-tight">
         {props.value}
       </Text>
     </div>

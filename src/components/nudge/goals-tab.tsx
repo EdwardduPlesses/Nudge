@@ -3,6 +3,7 @@
 import { format, parseISO } from "date-fns";
 import { useEffect, useState } from "react";
 import { Button, Card, Dialog, Heading, Progress, Text, TextField } from "frosted-ui";
+import { NudgeDatePicker } from "@/components/nudge/nudge-date-picker";
 import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
 import { goalDisplaySaved } from "@/lib/budget/selectors";
@@ -52,18 +53,14 @@ function GoalFormFields(props: {
           />
         </TextField.Root>
       </div>
-      <div>
-        <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
-          Target date <span className="font-normal text-gray-500">(optional)</span>
-        </Text>
-        <TextField.Root className="nudge-field w-full">
-          <TextField.Input
-            type="date"
-            value={props.deadline}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => props.setDeadline(e.target.value)}
-          />
-        </TextField.Root>
-      </div>
+      <NudgeDatePicker
+        label="Target date"
+        optionalSuffix="(optional)"
+        ariaLabel="Goal target date"
+        value={props.deadline}
+        onChange={props.setDeadline}
+        allowClear
+      />
     </div>
   );
 }
@@ -131,7 +128,7 @@ export function GoalsTab() {
   return (
     <div className="flex flex-col gap-7">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+        <div className="min-w-0">
           <Heading size="6" className="tracking-tight">
             Savings goals
           </Heading>
@@ -157,7 +154,7 @@ export function GoalsTab() {
           </Dialog.Trigger>
           <Dialog.Content
             size="3"
-            className="max-w-[min(calc(100vw-1.5rem),24rem)] sm:max-w-md"
+            className="max-h-[calc(100dvh-2rem)] max-w-[min(calc(100vw-1.5rem),24rem)] overflow-y-auto overscroll-contain sm:max-w-md"
           >
             <Dialog.Title>Create goal</Dialog.Title>
             <Dialog.Description size="2" color="gray" className="leading-relaxed">
@@ -200,7 +197,7 @@ export function GoalsTab() {
       >
         <Dialog.Content
           size="3"
-          className="max-w-[min(calc(100vw-1.5rem),24rem)] sm:max-w-md"
+          className="max-h-[calc(100dvh-2rem)] max-w-[min(calc(100vw-1.5rem),24rem)] overflow-y-auto overscroll-contain sm:max-w-md"
         >
           <Dialog.Title>Edit goal</Dialog.Title>
           <Dialog.Description size="2" color="gray" className="leading-relaxed">
@@ -209,16 +206,18 @@ export function GoalsTab() {
 
           {editing ? (
             <>
-              <div className="mt-5 rounded-xl border border-gray-600/15 bg-gray-900/4 px-4 py-3 dark:bg-white/4">
+              <div className="mt-5 rounded-xl border border-gray-600/15 bg-gray-900/4 px-4 py-3.5 dark:bg-white/4">
                 <Text size="2" color="gray">
                   Saved toward goal (from activity)
                 </Text>
-                <Text weight="bold" className="mt-1 tabular-nums text-lg tracking-tight">
-                  {fmt(goalDisplaySaved(editing, state.transactions))}{" "}
-                  <span className="text-base font-medium text-gray-500">
+                <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+                  <Text weight="bold" className="min-w-0 tabular-nums text-lg tracking-tight">
+                    {fmt(goalDisplaySaved(editing, state.transactions))}
+                  </Text>
+                  <Text className="shrink-0 text-base font-medium tabular-nums text-gray-500">
                     / {fmt(editing.targetAmount)}
-                  </span>
-                </Text>
+                  </Text>
+                </div>
               </div>
 
               <GoalFormFields
@@ -253,7 +252,7 @@ export function GoalsTab() {
         <Card
           size="3"
           variant="surface"
-          className="nudge-card-surface border border-dashed border-gray-600/30 py-10 text-center"
+          className="nudge-card-surface border border-dashed border-gray-600/30 px-4 py-10 text-center sm:px-6"
         >
           <Text color="gray" className="leading-relaxed">
             No goals yet. Tap <strong className="text-foreground">New goal</strong> to create one.
@@ -266,15 +265,16 @@ export function GoalsTab() {
             const pct = g.targetAmount > 0 ? Math.min(100, (saved / g.targetAmount) * 100) : 0;
             return (
               <Card key={g.id} size="3" variant="surface" className="nudge-card-surface">
-                <div className="flex items-start justify-between gap-3">
-                  <Heading size="4" className="min-w-0 flex-1 tracking-tight">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                  <Heading size="4" className="min-w-0 flex-1 tracking-tight wrap-break-word sm:pr-2">
                     {g.name}
                   </Heading>
-                  <div className="flex shrink-0 gap-2">
+                  <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
                     <Button
                       size="2"
                       variant="soft"
                       color="gray"
+                      className="min-h-10 flex-1 sm:flex-none"
                       onClick={() => {
                         setEditing(g);
                         setEditOpen(true);
@@ -286,6 +286,7 @@ export function GoalsTab() {
                       size="2"
                       variant="ghost"
                       color="red"
+                      className="min-h-10 flex-1 sm:flex-none"
                       onClick={() => removeGoal(g.id)}
                       aria-label={`Remove goal ${g.name}`}
                     >
@@ -299,9 +300,11 @@ export function GoalsTab() {
                   </Text>
                 ) : null}
                 <div className="mt-5 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <Text color="gray">Saved</Text>
-                    <Text weight="medium" className="tabular-nums">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+                    <Text color="gray" className="shrink-0">
+                      Saved
+                    </Text>
+                    <Text weight="medium" className="min-w-0 text-right tabular-nums">
                       {fmt(saved)} / {fmt(g.targetAmount)}
                     </Text>
                   </div>

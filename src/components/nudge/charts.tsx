@@ -15,7 +15,6 @@ import {
 import { useCurrency } from "@/context/currency-context";
 import { formatUsdAsDisplayAxisTick } from "@/lib/format-money";
 
-const PIE_W = 328;
 const PIE_H = 240;
 
 function useTrackedChartWidth(min: number, max: number) {
@@ -87,6 +86,9 @@ export function CategoryPie({
 }) {
   const c = useCurrency();
   const tooltip = useChartTooltipTheme();
+  const { ref, width } = useTrackedChartWidth(200, 360);
+  const innerRadius = Math.max(40, Math.round(Math.min(width, PIE_H) * 0.23));
+  const outerRadius = Math.max(64, Math.round(Math.min(width, PIE_H) * 0.36));
 
   if (!data.length) {
     return (
@@ -98,18 +100,18 @@ export function CategoryPie({
 
   return (
     <div
-      className="flex h-[240px] w-full min-h-[240px] min-w-[min(100%,280px)] items-center justify-center overflow-hidden rounded-2xl"
-      style={{ minWidth: 280 }}
+      ref={ref}
+      className="flex h-[240px] w-full min-h-[240px] min-w-0 items-center justify-center overflow-hidden rounded-2xl"
     >
-      <PieChart width={PIE_W} height={PIE_H} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+      <PieChart width={width} height={PIE_H} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
         <Pie
           data={data}
           dataKey="value"
           nameKey="name"
-          cx={PIE_W / 2}
+          cx={width / 2}
           cy={PIE_H / 2}
-          innerRadius={56}
-          outerRadius={88}
+          innerRadius={innerRadius}
+          outerRadius={outerRadius}
           paddingAngle={2}
         >
           {data.map((entry) => (

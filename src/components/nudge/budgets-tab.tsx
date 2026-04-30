@@ -51,7 +51,7 @@ export function BudgetsTab() {
 
   return (
     <div className="flex flex-col gap-7">
-      <div>
+      <div className="min-w-0">
         <Heading size="6" className="tracking-tight">
           Budgets
         </Heading>
@@ -66,7 +66,7 @@ export function BudgetsTab() {
           const pct = cat.budgetLimit > 0 ? Math.min(100, (spent / cat.budgetLimit) * 100) : 0;
           return (
             <Card key={cat.id} size="3" variant="surface" className="nudge-card-surface">
-              <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-start">
+              <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-start md:gap-x-8">
                 <div className="flex min-w-0 flex-col gap-3">
                   <Text size="2" weight="medium" className="text-foreground/80">
                     Category
@@ -81,19 +81,19 @@ export function BudgetsTab() {
                       }
                     />
                   </TextField.Root>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Text size="2" color="gray" className="tabular-nums">
-                      Spent {fmt(spent)} of {fmt(cat.budgetLimit)}
-                    </Text>
+                  <div className="flex min-w-0 items-center gap-2">
                     <span
                       className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
                       style={{ backgroundColor: cat.color }}
                       aria-hidden
                     />
+                    <Text size="2" color="gray" className="min-w-0 break-words tabular-nums">
+                      Spent {fmt(spent)} of {fmt(cat.budgetLimit)}
+                    </Text>
                   </div>
                   <Progress value={pct} color={pct > 100 ? "ruby" : "gold"} />
                 </div>
-                <div className="flex w-full flex-col gap-1.5 sm:w-auto">
+                <div className="flex w-full flex-col gap-2 border-t border-gray-600/15 pt-4 md:border-t-0 md:pt-0">
                   <Text size="2" weight="medium" className="text-foreground/80">
                     Monthly cap {c.amountApproxLabel}
                   </Text>

@@ -161,7 +161,7 @@ export function ActivityTab() {
         <Card
           size="3"
           variant="surface"
-          className="nudge-card-surface border border-dashed border-gray-600/30 py-10 text-center"
+          className="nudge-card-surface border border-dashed border-gray-600/30 px-4 py-10 text-center sm:px-6"
         >
           <Text color="gray" className="leading-relaxed">
             {sorted.length === 0 ? (
@@ -196,7 +196,7 @@ export function ActivityTab() {
                   variant="surface"
                   className="nudge-card-surface overflow-hidden border border-gray-600/15 pl-0 transition-shadow hover:shadow-md dark:border-white/[0.08]"
                 >
-                  <div className="flex gap-4 pl-0 sm:items-stretch">
+                  <div className="flex gap-3 pl-0 sm:items-stretch sm:gap-4">
                     <div
                       aria-hidden
                       className={`w-1 shrink-0 rounded-l-[inherit] sm:w-1.5 ${t.type === "income" ? "bg-emerald-500 dark:bg-emerald-400" : ""}`}
@@ -210,12 +210,9 @@ export function ActivityTab() {
                           : undefined
                       }
                     />
-                    <div className="flex min-w-0 flex-1 flex-col gap-3 py-4 pr-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                          <Text weight="bold" className="tabular-nums text-xl tracking-tight sm:text-lg">
-                            {fmt(t.amount)}
-                          </Text>
+                    <div className="flex min-w-0 flex-1 flex-col gap-4 py-4 pr-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                           <span
                             className={
                               t.type === "income"
@@ -225,51 +222,58 @@ export function ActivityTab() {
                           >
                             {t.type}
                           </span>
+                          <Text size="1" color="gray" className="tabular-nums tracking-wide uppercase">
+                            {dateLabel}
+                          </Text>
                         </div>
-                        <Text size="2" color="gray" className="mt-1.5 leading-relaxed">
+                        <Text size="2" color="gray" className="leading-relaxed wrap-break-word">
                           {categoryLabel}
                           {goalLabel ? (
                             <>
                               {" "}
-                              <span className="rounded-md bg-gold-primary/15 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-gold-primary">
+                              <span className="inline-block max-w-full rounded-md bg-gold-primary/15 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-gold-primary align-middle wrap-break-word">
                                 Goal · {goalLabel}
                               </span>
                             </>
                           ) : null}
-                          {t.note ? (
-                            <>
-                              {" "}
-                              <span className="text-foreground/70">&middot; {t.note}</span>
-                            </>
-                          ) : null}
                         </Text>
-                        <Text size="1" color="gray" className="mt-1.5 tracking-wide uppercase">
-                          {dateLabel}
-                        </Text>
+                        {t.note ? (
+                          <Text size="2" className="leading-relaxed wrap-break-word text-foreground/80 line-clamp-4">
+                            {t.note}
+                          </Text>
+                        ) : null}
                       </div>
 
-                      <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
-                        <Button
-                          size="2"
-                          variant="soft"
-                          color="gray"
-                          className="w-full sm:w-auto"
-                          onClick={() => {
-                            setEditingTx(t);
-                            setEditOpen(true);
-                          }}
+                      <div className="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:items-end">
+                        <Text
+                          weight="bold"
+                          className="w-full text-left text-xl tabular-nums tracking-tight sm:w-auto sm:text-right sm:text-lg"
                         >
-                          Edit
-                        </Button>
-                        <Button
-                          size="2"
-                          variant="soft"
-                          color="red"
-                          className="min-h-10 w-full sm:w-auto"
-                          onClick={() => removeTransaction(t.id)}
-                        >
-                          Remove
-                        </Button>
+                          {fmt(t.amount)}
+                        </Text>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                          <Button
+                            size="2"
+                            variant="soft"
+                            color="gray"
+                            className="w-full min-h-10 sm:w-auto"
+                            onClick={() => {
+                              setEditingTx(t);
+                              setEditOpen(true);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="2"
+                            variant="soft"
+                            color="red"
+                            className="min-h-10 w-full sm:w-auto"
+                            onClick={() => removeTransaction(t.id)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>

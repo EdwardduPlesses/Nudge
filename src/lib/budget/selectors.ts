@@ -1,25 +1,31 @@
-import {
-  endOfMonth,
-  format,
-  isWithinInterval,
-  parseISO,
-  startOfMonth,
-  subDays,
-} from "date-fns";
+import { endOfMonth, format, parseISO, startOfMonth, subDays } from "date-fns";
 import type { Category, Goal, Transaction } from "./types";
 
-export function monthWindow(reference: Date) {
-  return { start: startOfMonth(reference), end: endOfMonth(reference) };
+/**
+ * Calendar day from a stored transaction date. Entries use `yyyy-MM-dd` or
+ * `yyyy-MM-ddT12:00:00.000Z` from the picker — compare this string to local month bounds instead
+ * of `isWithinInterval(parseISO(...))`, which can shift the instant into the previous local day.
+ */
+export function transactionCalendarDayKey(dateStr: string): string | null {
+  const t = dateStr.trim();
+  const m = t.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (m?.[1]) return m[1];
+  const parsed = parseISO(t);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return format(parsed, "yyyy-MM-dd");
 }
 
 export function transactionsThisMonth(
   transactions: Transaction[],
   reference: Date,
 ): Transaction[] {
-  const { start, end } = monthWindow(reference);
-  return transactions.filter((t) =>
-    isWithinInterval(parseISO(t.date), { start, end }),
-  );
+  const startKey = format(startOfMonth(reference), "yyyy-MM-dd");
+  const endKey = format(endOfMonth(reference), "yyyy-MM-dd");
+  return transactions.filter((t) => {
+    const key = transactionCalendarDayKey(t.date);
+    if (key == null) return false;
+    return key >= startKey && key <= endKey;
+  });
 }
 
 export function sumIncome(transactions: Transaction[]): number {
@@ -77,11 +83,12 @@ export function dailySpendingLastWeek(transactions: Transaction[]): {
   for (let i = 6; i >= 0; i--) {
     const d = subDays(today, i);
     const label = format(d, "EEE");
+    const dayKey = format(d, "yyyy-MM-dd");
     const total = transactions
       .filter((t) => {
         if (t.type !== "expense") return false;
-        const td = parseISO(t.date);
-        return format(td, "yyyy-MM-dd") === format(d, "yyyy-MM-dd");
+        const tk = transactionCalendarDayKey(t.date);
+        return tk === dayKey;
       })
       .reduce((s, t) => s + t.amount, 0);
     days.push({ day: label, total });
