@@ -12,7 +12,7 @@ import { WhopIframeSdkProvider } from "@whop/react/iframe";
 export function NudgeWhopShell(props: { children: ReactNode }) {
   return (
     <WhopIframeSdkProvider>
-      <Theme accentColor="gold" appearance="dark" className="flex min-h-0 flex-1 flex-col">
+      <Theme accentColor="gold" appearance="inherit" className="flex min-h-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1 flex-col">{props.children}</div>
       </Theme>
     </WhopIframeSdkProvider>

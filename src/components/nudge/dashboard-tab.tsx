@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
-import { Badge, Button, Card, Heading, Text } from "frosted-ui";
 import { AddTransactionDialog } from "@/components/nudge/add-transaction-dialog";
 import { AiMoneyPlanCta } from "@/components/nudge/dashboard/ai-money-plan-cta";
 import { CategoryHealthList } from "@/components/nudge/dashboard/category-health-list";
@@ -38,110 +37,144 @@ export function DashboardTab() {
     v.hasBudget && v.hasExpenseData ? fmt(v.forecast) : "—";
 
   return (
-    <div className="flex flex-col space-y-8">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex flex-col gap-9">
+      {/* ───── Section header ───── */}
+      <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <Badge color="gold" size="1" className="font-medium">
+          <span className="eyebrow">
+            <span className="eyebrow-gold">N°01</span>
+            <span aria-hidden style={{ margin: "0 0.5em", color: "var(--ink-faint)" }}>
+              —
+            </span>
             {format(new Date(), "MMMM yyyy", { locale: enUS })}
-          </Badge>
-          <Heading size="7" className="mt-3 tracking-tight">
+          </span>
+          <h2
+            className="heading-display mt-3"
+            style={{
+              color: "var(--ink)",
+              fontSize: "clamp(1.6rem, 3.6vw, 2.15rem)",
+              lineHeight: 1.1,
+            }}
+          >
             Stay on track
-          </Heading>
-          <Text size="3" color="gray" className="mt-2 max-w-md leading-relaxed">
+          </h2>
+          <p
+            className="mt-2 max-w-md"
+            style={{ color: "var(--ink-muted)", fontSize: "0.95rem", lineHeight: 1.55 }}
+          >
             See what&apos;s left and where to focus.
-          </Text>
+          </p>
         </div>
-        <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
+        <div className="flex w-full shrink-0 flex-col gap-2.5 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
           <AiMoneyPlanCta />
           <AddTransactionDialog
             trigger={
-              <Button
-                size="3"
-                color="gold"
-                className="w-full shadow-sm sm:w-auto"
-                aria-label="Add income or expense"
-              >
+              <button type="button" className="atelier-btn-gold w-full sm:w-auto" aria-label="Add income or expense">
+                <span aria-hidden style={{ fontSize: "1rem", lineHeight: 1 }}>
+                  ✦
+                </span>
                 Add transaction
-              </Button>
+              </button>
             }
           />
         </div>
       </header>
 
       {state.transactions.length === 0 ? (
-        <Card size="3" variant="surface" className="nudge-card-surface border border-dashed border-gray-600/25 p-5">
-          <Text size="2" color="gray" className="leading-relaxed">
+        <div
+          className="atelier-card p-5"
+          style={{ borderStyle: "dashed", borderColor: "var(--hairline-strong)" }}
+        >
+          <p style={{ color: "var(--ink-soft)", fontSize: "0.9rem", lineHeight: 1.55 }}>
             No activity yet. Log your first expense with{" "}
-            <span className="font-medium text-foreground/90">Add transaction</span> to populate this
-            overview.
-          </Text>
-        </Card>
+            <span style={{ color: "var(--ink)", fontWeight: 600 }}>Add transaction</span> to populate
+            this overview.
+          </p>
+        </div>
       ) : null}
 
       {state.transactions.length > 0 && monthTx.length === 0 ? (
-        <Text size="2" color="gray" className="leading-relaxed">
+        <p style={{ color: "var(--ink-muted)", fontSize: "0.9rem", lineHeight: 1.55 }}>
           Nothing dated in {format(new Date(), "MMMM yyyy", { locale: enUS })}. Check{" "}
-          <span className="font-medium text-foreground/90">Activity</span> or add a transaction for
-          this month.
-        </Text>
+          <span style={{ color: "var(--ink)", fontWeight: 600 }}>Activity</span> or add a transaction
+          for this month.
+        </p>
       ) : null}
 
       <OverviewHero />
 
+      <div className="atelier-rule" role="presentation">
+        <span aria-hidden>✦</span>
+      </div>
+
+      {/* ───── This month ───── */}
       <section aria-label="This month summary">
-        <Heading size="3" className="mb-3 tracking-tight text-foreground/90">
-          This month
-        </Heading>
-        <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
-          <QuickStat label="Income" value={fmt(income)} />
-          <QuickStat label="Spending" value={fmt(spent)} />
-          <QuickStat
+        <div className="mb-4">
+          <span className="eyebrow">
+            <span className="eyebrow-gold">N°02</span>
+            <span aria-hidden style={{ margin: "0 0.5em", color: "var(--ink-faint)" }}>
+              —
+            </span>
+            Ledger Summary
+          </span>
+          <h3
+            className="heading-display mt-1.5"
+            style={{ color: "var(--ink)", fontSize: "1.35rem", lineHeight: 1.15 }}
+          >
+            This month
+          </h3>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          <Stat label="Income" value={fmt(income)} />
+          <Stat label="Spending" value={fmt(spent)} />
+          <Stat
             label="Net"
             value={fmt(net)}
-            valueClass={net >= 0 ? undefined : "text-ruby-600 dark:text-ruby-400"}
+            valueColor={net >= 0 ? undefined : "var(--tone-overdue)"}
           />
-          <QuickStat label="Forecast" value={forecastDisplay} hint="Month-end at today's pace" />
+          <Stat label="Forecast" value={forecastDisplay} hint="Month-end at today's pace" />
         </div>
       </section>
 
+      <div className="atelier-rule" role="presentation">
+        <span aria-hidden>✦</span>
+      </div>
+
+      {/* ───── Category health ───── */}
       <section aria-label="Category health">
+        <div className="mb-4">
+          <span className="eyebrow">
+            <span className="eyebrow-gold">N°03</span>
+            <span aria-hidden style={{ margin: "0 0.5em", color: "var(--ink-faint)" }}>
+              —
+            </span>
+            Allocations
+          </span>
+        </div>
         <CategoryHealthList />
       </section>
     </div>
   );
 }
 
-function QuickStat(props: {
+function Stat(props: {
   label: string;
   value: string;
   hint?: string;
-  valueClass?: string;
+  valueColor?: string;
 }) {
   return (
-    <Card
-      size="3"
-      variant="surface"
-      className="nudge-card-surface flex h-full min-h-0 w-full min-w-0 flex-col p-4 sm:p-5"
-    >
-      <div className="flex w-full min-w-0 flex-1 flex-col gap-2">
-        <Text size="2" color="gray" className="m-0 block w-full font-medium leading-snug">
-          {props.label}
-        </Text>
-        <Text
-          size="5"
-          weight="medium"
-          className={`m-0 block w-full min-w-0 wrap-break-word tabular-nums leading-tight tracking-tight ${props.valueClass ?? ""}`}
-        >
-          {props.value}
-        </Text>
+    <div className="atelier-stat">
+      <p className="atelier-stat-label">{props.label}</p>
+      <p
+        className="atelier-stat-value"
+        style={props.valueColor ? { color: props.valueColor } : undefined}
+      >
+        {props.value}
+      </p>
+      <div style={{ minHeight: "1rem" }}>
+        {props.hint ? <p className="atelier-stat-hint">{props.hint}</p> : null}
       </div>
-      <div className="mt-3 w-full min-h-11 shrink-0">
-        {props.hint ? (
-          <Text size="1" color="gray" className="m-0 block w-full leading-snug">
-            {props.hint}
-          </Text>
-        ) : null}
-      </div>
-    </Card>
+    </div>
   );
 }

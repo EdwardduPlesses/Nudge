@@ -2,7 +2,7 @@
 
 import { format, parseISO } from "date-fns";
 import { useEffect, useState } from "react";
-import { Button, Card, Dialog, Heading, Progress, Text, TextField } from "frosted-ui";
+import { Button, Dialog, Progress, TextField } from "frosted-ui";
 import { NudgeDatePicker } from "@/components/nudge/nudge-date-picker";
 import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
@@ -24,9 +24,7 @@ function GoalFormFields(props: {
   return (
     <div className="mt-6 flex flex-col gap-5">
       <div>
-        <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
-          Name
-        </Text>
+        <span className="eyebrow mb-2 block">Name</span>
         <TextField.Root className="nudge-field w-full">
           <TextField.Input
             placeholder="Vacation fund"
@@ -37,9 +35,7 @@ function GoalFormFields(props: {
         </TextField.Root>
       </div>
       <div>
-        <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
-          Target {props.amountApproxLabel}
-        </Text>
+        <span className="eyebrow mb-2 block">Target {props.amountApproxLabel}</span>
         <TextField.Root className="nudge-field w-full">
           <TextField.Input
             type="number"
@@ -126,19 +122,30 @@ export function GoalsTab() {
   }
 
   return (
-    <div className="flex flex-col gap-7">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex flex-col gap-8">
+      {/* ───── Header ───── */}
+      <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <Heading size="6" className="tracking-tight">
+          <span className="eyebrow">
+            <span className="eyebrow-gold">N°01</span>
+            <span aria-hidden style={{ margin: "0 0.5em", color: "var(--ink-faint)" }}>
+              —
+            </span>
+            Reserves
+          </span>
+          <h2
+            className="heading-display mt-3"
+            style={{ color: "var(--ink)", fontSize: "clamp(1.6rem, 3.6vw, 2.15rem)", lineHeight: 1.1 }}
+          >
             Savings goals
-          </Heading>
-          <Text size="2" color="gray" className="mt-2 max-w-xl leading-relaxed">
+          </h2>
+          <p className="mt-2 max-w-xl" style={{ color: "var(--ink-muted)", fontSize: "0.95rem", lineHeight: 1.55 }}>
             Progress updates when you log activity: use{" "}
-            <strong className="text-foreground/90">Add transaction</strong>, choose{" "}
-            <strong className="text-foreground/90">Goal</strong>, then{" "}
-            <strong className="text-foreground/90">Add to goal</strong> or{" "}
-            <strong className="text-foreground/90">Withdraw from goal</strong>.
-          </Text>
+            <strong style={{ color: "var(--ink)" }}>Add transaction</strong>, choose{" "}
+            <strong style={{ color: "var(--ink)" }}>Goal</strong>, then{" "}
+            <strong style={{ color: "var(--ink)" }}>Add to goal</strong> or{" "}
+            <strong style={{ color: "var(--ink)" }}>Withdraw from goal</strong>.
+          </p>
         </div>
         <Dialog.Root
           open={createOpen}
@@ -148,9 +155,12 @@ export function GoalsTab() {
           }}
         >
           <Dialog.Trigger>
-            <Button size="3" color="gold" className="w-full shrink-0 shadow-sm sm:w-auto">
+            <button type="button" className="atelier-btn-gold w-full shrink-0 sm:w-auto">
+              <span aria-hidden style={{ fontSize: "1rem", lineHeight: 1 }}>
+                ✦
+              </span>
               New goal
-            </Button>
+            </button>
           </Dialog.Trigger>
           <Dialog.Content
             size="3"
@@ -180,13 +190,16 @@ export function GoalsTab() {
                   Cancel
                 </Button>
               </Dialog.Close>
-              <Button size="3" color="gold" className="w-full shadow-sm sm:w-auto" onClick={submitCreate}>
+              <button type="button" className="atelier-btn-gold w-full sm:w-auto" onClick={submitCreate}>
+                <span aria-hidden style={{ fontSize: "1rem", lineHeight: 1 }}>
+                  ✦
+                </span>
                 Create goal
-              </Button>
+              </button>
             </div>
           </Dialog.Content>
         </Dialog.Root>
-      </div>
+      </header>
 
       <Dialog.Root
         open={editOpen}
@@ -206,17 +219,26 @@ export function GoalsTab() {
 
           {editing ? (
             <>
-              <div className="mt-5 rounded-xl border border-gray-600/15 bg-gray-900/4 px-4 py-3.5 dark:bg-white/4">
-                <Text size="2" color="gray">
-                  Saved toward goal (from activity)
-                </Text>
+              <div className="atelier-card mt-5 px-4 py-3.5">
+                <span className="eyebrow">Saved toward goal (from activity)</span>
                 <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-                  <Text weight="bold" className="min-w-0 tabular-nums text-lg tracking-tight">
+                  <span
+                    className="heading-display tabular"
+                    style={{
+                      color: "var(--ink)",
+                      fontSize: "1.35rem",
+                      fontWeight: 500,
+                      letterSpacing: "-0.01em",
+                    }}
+                  >
                     {fmt(goalDisplaySaved(editing, state.transactions))}
-                  </Text>
-                  <Text className="shrink-0 text-base font-medium tabular-nums text-gray-500">
+                  </span>
+                  <span
+                    className="shrink-0 tabular"
+                    style={{ color: "var(--ink-muted)", fontSize: "0.95rem" }}
+                  >
                     / {fmt(editing.targetAmount)}
-                  </Text>
+                  </span>
                 </div>
               </div>
 
@@ -239,9 +261,12 @@ export function GoalsTab() {
                     Cancel
                   </Button>
                 </Dialog.Close>
-                <Button size="3" color="gold" className="w-full shadow-sm sm:w-auto" onClick={submitEdit}>
+                <button type="button" className="atelier-btn-gold w-full sm:w-auto" onClick={submitEdit}>
+                  <span aria-hidden style={{ fontSize: "1rem", lineHeight: 1 }}>
+                    ✦
+                  </span>
                   Save changes
-                </Button>
+                </button>
               </div>
             </>
           ) : null}
@@ -249,26 +274,33 @@ export function GoalsTab() {
       </Dialog.Root>
 
       {state.goals.length === 0 ? (
-        <Card
-          size="3"
-          variant="surface"
-          className="nudge-card-surface border border-dashed border-gray-600/30 px-4 py-10 text-center sm:px-6"
+        <div
+          className="atelier-card px-4 py-10 text-center sm:px-6"
+          style={{ borderStyle: "dashed", borderColor: "var(--hairline-strong)" }}
         >
-          <Text color="gray" className="leading-relaxed">
-            No goals yet. Tap <strong className="text-foreground">New goal</strong> to create one.
-          </Text>
-        </Card>
+          <p style={{ color: "var(--ink-muted)", lineHeight: 1.6 }}>
+            No goals yet. Tap <strong style={{ color: "var(--ink)" }}>New goal</strong> to create one.
+          </p>
+        </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {state.goals.map((g) => {
             const saved = goalDisplaySaved(g, state.transactions);
             const pct = g.targetAmount > 0 ? Math.min(100, (saved / g.targetAmount) * 100) : 0;
             return (
-              <Card key={g.id} size="3" variant="surface" className="nudge-card-surface">
+              <article key={g.id} className="atelier-card atelier-card-interactive p-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                  <Heading size="4" className="min-w-0 flex-1 tracking-tight wrap-break-word sm:pr-2">
+                  <h4
+                    className="heading-display min-w-0 flex-1 wrap-break-word sm:pr-2"
+                    style={{
+                      color: "var(--ink)",
+                      fontSize: "1.2rem",
+                      lineHeight: 1.2,
+                      letterSpacing: "-0.01em",
+                    }}
+                  >
                     {g.name}
-                  </Heading>
+                  </h4>
                   <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
                     <Button
                       size="2"
@@ -295,25 +327,39 @@ export function GoalsTab() {
                   </div>
                 </div>
                 {g.deadline ? (
-                  <Text size="2" color="gray" className="mt-2">
+                  <p
+                    className="mt-2 tabular"
+                    style={{ color: "var(--ink-muted)", fontSize: "0.85rem" }}
+                  >
+                    <span aria-hidden style={{ color: "var(--gold)", marginRight: "0.4em" }}>
+                      ✦
+                    </span>
                     Target {format(parseISO(g.deadline), "MMM d, yyyy")}
-                  </Text>
+                  </p>
                 ) : null}
                 <div className="mt-5 space-y-2">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
-                    <Text color="gray" className="shrink-0">
-                      Saved
-                    </Text>
-                    <Text weight="medium" className="min-w-0 text-right tabular-nums">
+                    <span className="eyebrow">Saved</span>
+                    <span
+                      className="tabular"
+                      style={{
+                        color: "var(--ink)",
+                        fontWeight: 500,
+                        fontSize: "0.92rem",
+                      }}
+                    >
                       {fmt(saved)} / {fmt(g.targetAmount)}
-                    </Text>
+                    </span>
                   </div>
                   <Progress value={pct} color="gold" />
                 </div>
-                <Text size="1" color="gray" className="mt-4 leading-snug">
+                <p
+                  className="mt-4"
+                  style={{ color: "var(--ink-faint)", fontSize: "0.78rem", lineHeight: 1.5 }}
+                >
                   Log allocations or withdrawals in Activity to move this balance.
-                </Text>
-              </Card>
+                </p>
+              </article>
             );
           })}
         </div>

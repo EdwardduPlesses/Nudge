@@ -11,18 +11,20 @@ export function QuickAddExpenseButton(props: {
 
   const trigger =
     variant === "fab" ? (
-      <Button
-        type="button"
-        size="3"
-        color="gold"
-        className={
-          props.className ??
-          "fixed bottom-5 right-4 z-50 min-h-12 rounded-full px-5 shadow-lg shadow-black/20 sm:bottom-6 sm:right-6"
-        }
-        aria-label="Quick add expense"
-      >
-        + Quick Add
-      </Button>
+      <button type="button" className="atelier-fab" aria-label="Quick add expense">
+        <svg
+          aria-hidden
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.25"
+          strokeLinecap="round"
+        >
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+      </button>
     ) : (
       <Button
         type="button"

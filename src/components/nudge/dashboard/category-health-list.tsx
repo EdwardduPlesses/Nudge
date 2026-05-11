@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { Badge, Card, Heading, Progress, Text } from "frosted-ui";
 import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
 import {
@@ -9,33 +8,36 @@ import {
   type CategoryHealthStatus,
 } from "@/lib/budget/category-health";
 
-function statusBadgeProps(status: CategoryHealthStatus): {
+type Tone = "success" | "warm" | "info" | "overdue" | undefined;
+
+function statusChip(status: CategoryHealthStatus | null): {
   label: string;
-  color: "jade" | "amber" | "gold" | "ruby";
+  tone: Tone;
 } {
+  if (status == null) return { label: "No limit", tone: undefined };
   switch (status) {
     case "SAFE":
-      return { label: "Safe", color: "jade" };
+      return { label: "Safe", tone: "success" };
     case "WARNING":
-      return { label: "Warning", color: "amber" };
+      return { label: "Warning", tone: "warm" };
     case "HIGH":
-      return { label: "High", color: "gold" };
+      return { label: "High", tone: "info" };
     case "OVER":
-      return { label: "Over", color: "ruby" };
+      return { label: "Over", tone: "overdue" };
   }
 }
 
-function progressColor(status: CategoryHealthStatus | null): "jade" | "amber" | "gold" | "ruby" {
-  if (status == null) return "gold";
+function barColor(status: CategoryHealthStatus | null): string {
+  if (status == null) return "var(--ink-muted)";
   switch (status) {
     case "SAFE":
-      return "jade";
+      return "var(--tone-success)";
     case "WARNING":
-      return "amber";
+      return "var(--tone-warm)";
     case "HIGH":
-      return "gold";
+      return "var(--tone-info)";
     case "OVER":
-      return "ruby";
+      return "var(--tone-overdue)";
   }
 }
 
@@ -50,97 +52,143 @@ export function CategoryHealthList() {
 
   if (state.categories.length === 0) {
     return (
-      <Card
-        size="3"
-        variant="surface"
-        className="nudge-card-surface nudge-card-frosted ring-1 ring-gray-500/15 p-4 sm:p-5"
-      >
-        <Heading size="4" className="tracking-tight">
+      <div className="atelier-card p-5">
+        <h4
+          className="heading-display"
+          style={{ color: "var(--ink)", fontSize: "1.2rem", lineHeight: 1.2 }}
+        >
           No categories yet
-        </Heading>
-        <Text size="2" color="gray" className="mt-3 leading-relaxed">
-          Open <span className="font-medium text-foreground/90">Budgets</span> to create categories
-          and monthly limits—your snapshot will show up here.
-        </Text>
-      </Card>
+        </h4>
+        <p className="mt-2" style={{ color: "var(--ink-muted)", fontSize: "0.9rem", lineHeight: 1.6 }}>
+          Open <span style={{ color: "var(--ink)", fontWeight: 600 }}>Budgets</span> to create categories
+          and monthly limits — your snapshot will show up here.
+        </p>
+      </div>
     );
   }
 
   return (
-    <Card
-      size="3"
-      variant="surface"
-      className="nudge-card-surface nudge-card-frosted ring-1 ring-gray-500/15 p-4 sm:p-5"
-    >
-      <div className="min-w-0">
-        <Heading size="4" className="tracking-tight">
-          Category health
-        </Heading>
-        <Text size="2" color="gray" className="mt-1 leading-relaxed">
-          Spend vs. limit this month
-        </Text>
+    <div className="atelier-card-elevated" style={{ padding: "1.4rem 1.5rem 1.5rem" }}>
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h4
+            className="heading-display"
+            style={{ color: "var(--ink)", fontSize: "1.25rem", lineHeight: 1.2 }}
+          >
+            Category health
+          </h4>
+          <p
+            className="mt-1"
+            style={{ color: "var(--ink-muted)", fontSize: "0.86rem", lineHeight: 1.5 }}
+          >
+            Spend vs. limit, this month
+          </p>
+        </div>
+        <span className="eyebrow tabular" style={{ color: "var(--ink-faint)" }}>
+          {String(rows.length).padStart(2, "0")} entries
+        </span>
       </div>
 
-      <ul className="mt-5 space-y-3" role="list">
-        {rows.map((row) => {
+      <ol className="mt-5 flex flex-col" role="list">
+        {rows.map((row, idx) => {
           const hasLimit = row.percentUsed != null && row.status != null;
           const barValue =
             row.percentUsed != null ? Math.min(100, Math.max(0, row.percentUsed)) : 0;
           const pctLabel = row.percentUsed == null ? null : `${Math.round(row.percentUsed)}%`;
-          const statusBadge = row.status != null ? statusBadgeProps(row.status) : null;
+          const chip = statusChip(row.status);
+          const bar = barColor(row.status);
 
           return (
             <li
               key={row.categoryId}
-              className="rounded-2xl border border-gray-600/15 bg-gray-900/4 p-4 dark:bg-white/4"
+              className="group flex flex-col gap-2.5 py-4"
+              style={{
+                borderTop: idx === 0 ? "none" : "1px solid var(--hairline)",
+              }}
             >
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <div className="flex min-w-0 flex-1 items-center gap-3">
-                  <span
-                    className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: row.color }}
-                    aria-hidden
-                  />
-                  <Text weight="medium" className="min-w-0 truncate leading-snug">
-                    {row.name}
-                  </Text>
-                </div>
+                <span
+                  className="tabular"
+                  style={{
+                    color: "var(--ink-faint)",
+                    fontSize: "0.7rem",
+                    letterSpacing: "0.16em",
+                    width: "1.6rem",
+                    flexShrink: 0,
+                  }}
+                  aria-hidden
+                >
+                  {String(idx + 1).padStart(2, "0")}
+                </span>
+                <span
+                  className="inline-block h-2 w-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: row.color }}
+                  aria-hidden
+                />
+                <span
+                  className="flex-1 truncate transition-colors duration-200 group-hover:text-[color:var(--gold)]"
+                  style={{
+                    color: "var(--ink)",
+                    fontWeight: 500,
+                    fontSize: "0.95rem",
+                    letterSpacing: "0.005em",
+                  }}
+                >
+                  {row.name}
+                </span>
                 <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                   {pctLabel != null ? (
-                    <Text size="2" color="gray" className="tabular-nums">
+                    <span
+                      className="tabular"
+                      style={{ color: "var(--ink-muted)", fontSize: "0.82rem" }}
+                    >
                       {pctLabel}
-                    </Text>
+                    </span>
                   ) : null}
-                  {statusBadge != null ? (
-                    <Badge size="1" color={statusBadge.color} className="font-medium">
-                      {statusBadge.label}
-                    </Badge>
-                  ) : (
-                    <Badge size="1" color="gray" className="font-medium">
-                      No limit
-                    </Badge>
-                  )}
+                  <span className="atelier-chip" data-tone={chip.tone}>
+                    {chip.label}
+                  </span>
                 </div>
               </div>
-              <Text size="2" color="gray" className="mt-2 tabular-nums">
-                {row.percentUsed == null ? (
-                  <>{formatFromUsd(row.currentMonthCategorySpendUsd)} spent</>
-                ) : (
-                  <>
-                    {formatFromUsd(row.currentMonthCategorySpendUsd)} /{" "}
-                    {formatFromUsd(row.categoryLimitUsd)}
-                  </>
-                )}
-              </Text>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pl-[2.85rem]">
+                <span
+                  className="tabular"
+                  style={{ color: "var(--ink-muted)", fontSize: "0.82rem" }}
+                >
+                  {row.percentUsed == null ? (
+                    <>{formatFromUsd(row.currentMonthCategorySpendUsd)} spent</>
+                  ) : (
+                    <>
+                      {formatFromUsd(row.currentMonthCategorySpendUsd)} ·{" "}
+                      <span style={{ color: "var(--ink-faint)" }}>
+                        {formatFromUsd(row.categoryLimitUsd)} limit
+                      </span>
+                    </>
+                  )}
+                </span>
+              </div>
+
               {hasLimit ? (
-                <div className="mt-3">
-                  <Progress value={barValue} color={progressColor(row.status)} />
+                <div
+                  className="ml-[2.85rem] mt-1 h-px overflow-hidden rounded-full"
+                  style={{ background: "var(--hairline-strong)", height: "2px" }}
+                  aria-hidden
+                >
+                  <div
+                    style={{
+                      width: `${barValue}%`,
+                      height: "100%",
+                      background: bar,
+                      transition: "width 360ms ease",
+                    }}
+                  />
                 </div>
               ) : null}
             </li>
           );
         })}
-      </ul>
-    </Card>
+      </ol>
+    </div>
   );
 }

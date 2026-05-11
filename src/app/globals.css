@@ -1,41 +1,665 @@
 @import "tailwindcss";
 
-:root {
-  --background: #09090b;
-  --foreground: #f4f4f5;
+/* ─────────────────────────────────────────────────────────────
+   Editorial Atelier — design tokens
+   Quiet luxury · hairline rules · serif display moments
+   Gold is sacred to the brand wordmark + primary affirmations.
+   ───────────────────────────────────────────────────────────── */
+
+:root,
+:root[data-theme="dark"] {
+  /* Surfaces — warm obsidian */
+  --bg: #0c0b09;
+  --surface: #15130f;
+  --surface-2: #1d1b15;
+  --surface-sunken: #0f0e0a;
+
+  /* Ink */
+  --ink: #f1ead9;
+  --ink-soft: #b9b09c;
+  --ink-muted: #7a7263;
+  --ink-faint: #4a443a;
+
+  /* Hairlines */
+  --hairline: rgba(241, 234, 217, 0.07);
+  --hairline-strong: rgba(241, 234, 217, 0.14);
+  --hairline-gold: rgba(212, 175, 55, 0.22);
+
+  /* Gold */
   --gold-bright: #f5d97a;
-  --gold-primary: #d4af37;
+  --gold: #d4af37;
   --gold-deep: #a67c00;
+  --gold-glow: rgba(212, 175, 55, 0.18);
+
+  /* Status tones */
+  --tone-overdue: #fb7185;
+  --tone-warm: #fbbf24;
+  --tone-info: #38bdf8;
+  --tone-success: #4ade80;
+  --tone-cool: #a78bfa;
+
+  /* Grain blend mode */
+  --grain-blend: screen;
+  --grain-opacity: 0.045;
+
+  /* Wordmark shimmer */
+  --wordmark-shadow: 0 0 24px rgba(212, 175, 55, 0.18);
+}
+
+:root[data-theme="light"] {
+  --bg: #faf7f0;
+  --surface: #ffffff;
+  --surface-2: #f3eee2;
+  --surface-sunken: #ede7d8;
+
+  --ink: #1a1714;
+  --ink-soft: #4f4639;
+  --ink-muted: #837866;
+  --ink-faint: #b1a691;
+
+  --hairline: rgba(26, 23, 20, 0.08);
+  --hairline-strong: rgba(26, 23, 20, 0.16);
+  --hairline-gold: rgba(138, 94, 10, 0.18);
+
+  --gold-bright: #b87f0c;
+  --gold: #8a5e0a;
+  --gold-deep: #5c3f06;
+  --gold-glow: rgba(184, 127, 12, 0.14);
+
+  --tone-overdue: #b3261e;
+  --tone-warm: #b96b06;
+  --tone-info: #1e6db8;
+  --tone-success: #1d7a34;
+  --tone-cool: #6534c4;
+
+  --grain-blend: overlay;
+  --grain-opacity: 0.06;
+
+  --wordmark-shadow: none;
+}
+
+/* Legacy aliases — backward compat for existing utility classes */
+:root {
+  --background: var(--bg);
+  --foreground: var(--ink);
+  --gold-primary: var(--gold);
   --gold-gradient: linear-gradient(
     135deg,
     var(--gold-bright) 0%,
-    var(--gold-primary) 50%,
+    var(--gold) 50%,
     var(--gold-deep) 100%
   );
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+  --color-hairline-gold: var(--hairline-gold);
   --color-gold-bright: var(--gold-bright);
-  --color-gold-primary: var(--gold-primary);
+  --color-gold: var(--gold);
+  --color-gold-primary: var(--gold);
   --color-gold-deep: var(--gold-deep);
+  --color-gold-glow: var(--gold-glow);
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-manrope);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Base
+   ───────────────────────────────────────────────────────────── */
+
+html {
+  font-family: var(--font-manrope), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-feature-settings: "tnum" 1, "cv11" 1, "ss01" 1;
+  color-scheme: dark;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
 }
 
 body {
-  background-color: var(--background);
-  background-image: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--gold-bright) 7%, transparent) 0%,
-    color-mix(in srgb, var(--gold-primary) 5%, transparent) 50%,
-    color-mix(in srgb, var(--gold-deep) 8%, transparent) 100%
-  );
-  background-attachment: fixed;
-  color: var(--foreground);
+  background-color: var(--bg);
+  color: var(--ink);
   min-height: 100%;
+  position: relative;
+  isolation: isolate;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Embeds + phones: respect safe area; comfortable form controls */
+/* Atmosphere: radial gold glow */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(
+      ellipse 80% 60% at 85% 0%,
+      var(--gold-glow) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 70% 50% at 0% 100%,
+      color-mix(in srgb, var(--gold-bright) 6%, transparent) 0%,
+      transparent 60%
+    );
+}
+
+/* Atmosphere: paper grain noise overlay */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: var(--grain-blend);
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 240px 240px;
+}
+
+/* Selection */
+::selection {
+  background: color-mix(in srgb, var(--gold-bright) 35%, transparent);
+  color: var(--ink);
+}
+
+/* Focus */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Typography utilities
+   ───────────────────────────────────────────────────────────── */
+
+.font-display {
+  font-family: var(--font-fraunces), ui-serif, Georgia, serif;
+  font-optical-sizing: auto;
+}
+
+.eyebrow {
+  font-family: var(--font-manrope), sans-serif;
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.eyebrow-gold {
+  color: var(--gold);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Brand wordmark — only place gold is used for type */
+.brand-wordmark {
+  font-family: var(--font-fraunces), ui-serif, Georgia, serif;
+  font-optical-sizing: auto;
+  font-variation-settings: "opsz" 144, "SOFT" 30;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+  background: linear-gradient(
+    135deg,
+    var(--gold-bright) 0%,
+    var(--gold) 45%,
+    var(--gold-deep) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  filter: drop-shadow(var(--wordmark-shadow));
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Cards
+   ───────────────────────────────────────────────────────────── */
+
+.atelier-card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--ink) 3%, transparent) inset,
+    0 1px 2px rgba(0, 0, 0, 0.18);
+  transition: border-color 240ms ease, box-shadow 240ms ease, transform 240ms ease;
+}
+
+.atelier-card-interactive:hover {
+  border-color: var(--hairline-gold);
+}
+
+.atelier-card-elevated {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 18px;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--ink) 4%, transparent) inset,
+    0 12px 32px -16px rgba(0, 0, 0, 0.38),
+    0 2px 6px -2px rgba(0, 0, 0, 0.22);
+}
+
+/* Tinted section panel */
+.atelier-section {
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  background: var(--surface);
+  padding: 1.25rem;
+}
+
+.atelier-section[data-tone="overdue"] {
+  background: color-mix(in srgb, var(--tone-overdue) 7%, var(--surface));
+  border-color: color-mix(in srgb, var(--tone-overdue) 24%, transparent);
+}
+.atelier-section[data-tone="warm"] {
+  background: color-mix(in srgb, var(--tone-warm) 8%, var(--surface));
+  border-color: color-mix(in srgb, var(--tone-warm) 24%, transparent);
+}
+.atelier-section[data-tone="info"] {
+  background: color-mix(in srgb, var(--tone-info) 7%, var(--surface));
+  border-color: color-mix(in srgb, var(--tone-info) 24%, transparent);
+}
+.atelier-section[data-tone="success"] {
+  background: color-mix(in srgb, var(--tone-success) 7%, var(--surface));
+  border-color: color-mix(in srgb, var(--tone-success) 24%, transparent);
+}
+.atelier-section[data-tone="cool"] {
+  background: color-mix(in srgb, var(--tone-cool) 7%, var(--surface));
+  border-color: color-mix(in srgb, var(--tone-cool) 24%, transparent);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Chips
+   ───────────────────────────────────────────────────────────── */
+
+.atelier-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 22px;
+  padding: 0 0.6rem;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-family: var(--font-manrope), sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.atelier-chip[data-tone="gold"] {
+  border-color: var(--hairline-gold);
+  background: color-mix(in srgb, var(--gold-bright) 8%, var(--surface));
+  color: var(--gold);
+}
+.atelier-chip[data-tone="overdue"] {
+  border-color: color-mix(in srgb, var(--tone-overdue) 32%, transparent);
+  background: color-mix(in srgb, var(--tone-overdue) 10%, var(--surface));
+  color: var(--tone-overdue);
+}
+.atelier-chip[data-tone="warm"] {
+  border-color: color-mix(in srgb, var(--tone-warm) 32%, transparent);
+  background: color-mix(in srgb, var(--tone-warm) 10%, var(--surface));
+  color: var(--tone-warm);
+}
+.atelier-chip[data-tone="info"] {
+  border-color: color-mix(in srgb, var(--tone-info) 32%, transparent);
+  background: color-mix(in srgb, var(--tone-info) 10%, var(--surface));
+  color: var(--tone-info);
+}
+.atelier-chip[data-tone="success"] {
+  border-color: color-mix(in srgb, var(--tone-success) 32%, transparent);
+  background: color-mix(in srgb, var(--tone-success) 10%, var(--surface));
+  color: var(--tone-success);
+}
+.atelier-chip[data-tone="cool"] {
+  border-color: color-mix(in srgb, var(--tone-cool) 32%, transparent);
+  background: color-mix(in srgb, var(--tone-cool) 10%, var(--surface));
+  color: var(--tone-cool);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Buttons
+   ───────────────────────────────────────────────────────────── */
+
+.atelier-btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 42px;
+  padding: 0 1.1rem;
+  border-radius: 10px;
+  font-family: var(--font-manrope), sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
+  color: #1a1410;
+  background: linear-gradient(
+    180deg,
+    var(--gold-bright) 0%,
+    var(--gold) 100%
+  );
+  border: 1px solid var(--gold-deep);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.32) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.18) inset,
+    0 6px 16px -8px color-mix(in srgb, var(--gold) 60%, transparent);
+  cursor: pointer;
+  transition: transform 200ms ease, box-shadow 200ms ease, filter 200ms ease;
+}
+.atelier-btn-gold:hover {
+  filter: brightness(1.05);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.32) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.18) inset,
+    0 10px 22px -10px color-mix(in srgb, var(--gold) 70%, transparent);
+}
+.atelier-btn-gold:active {
+  transform: translateY(1px);
+}
+
+.atelier-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 42px;
+  padding: 0 1.1rem;
+  border-radius: 10px;
+  font-family: var(--font-manrope), sans-serif;
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--hairline-strong);
+  cursor: pointer;
+  transition: border-color 200ms ease, background 200ms ease;
+}
+.atelier-btn-ghost:hover {
+  border-color: var(--hairline-gold);
+  background: color-mix(in srgb, var(--gold-bright) 5%, var(--surface));
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Tabs (segmented)
+   ───────────────────────────────────────────────────────────── */
+
+.atelier-tabs {
+  display: inline-flex;
+  padding: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  gap: 2px;
+}
+
+.atelier-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  font-family: var(--font-manrope), sans-serif;
+  font-weight: 500;
+  font-size: 0.82rem;
+  letter-spacing: 0.01em;
+  color: var(--ink-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 200ms ease, background 200ms ease, box-shadow 200ms ease;
+}
+.atelier-tab:hover {
+  color: var(--ink-soft);
+}
+.atelier-tab[data-active="true"],
+.atelier-tab[data-state="active"] {
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 1px 2px rgba(0, 0, 0, 0.18);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Stat tile
+   ───────────────────────────────────────────────────────────── */
+
+.atelier-stat {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  padding: 1rem 1.1rem 1.05rem;
+  isolation: isolate;
+}
+
+.atelier-stat::after {
+  content: "";
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--gold-glow) 0%,
+    transparent 65%
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+
+.atelier-stat-label {
+  font-family: var(--font-manrope), sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin: 0 0 0.55rem;
+}
+
+.atelier-stat-value {
+  font-family: var(--font-fraunces), ui-serif, Georgia, serif;
+  font-optical-sizing: auto;
+  font-variation-settings: "opsz" 96, "SOFT" 20;
+  font-weight: 400;
+  font-size: clamp(1.65rem, 4.4vw, 2.1rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+
+.atelier-stat-hint {
+  margin-top: 0.55rem;
+  font-size: 11px;
+  color: var(--ink-muted);
+  letter-spacing: 0.01em;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Hairline rule with ✦
+   ───────────────────────────────────────────────────────────── */
+
+.atelier-rule {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.5rem;
+  margin: 0.25rem 0;
+}
+.atelier-rule::before {
+  content: "";
+  position: absolute;
+  inset: 50% 0 auto 0;
+  height: 1px;
+  background: var(--hairline-strong);
+}
+.atelier-rule > span {
+  position: relative;
+  z-index: 1;
+  padding: 0 0.65rem;
+  background: var(--bg);
+  color: var(--gold);
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Floating action button
+   ───────────────────────────────────────────────────────────── */
+
+.atelier-fab {
+  position: fixed;
+  right: calc(1rem + env(safe-area-inset-right, 0px));
+  bottom: calc(1.1rem + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 1px solid var(--gold-deep);
+  background:
+    radial-gradient(
+      circle at 32% 28%,
+      color-mix(in srgb, #fff 38%, var(--gold-bright)) 0%,
+      var(--gold-bright) 30%,
+      var(--gold) 70%,
+      var(--gold-deep) 100%
+    );
+  color: #1a1410;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.55rem;
+  font-family: var(--font-fraunces), serif;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.45) inset,
+    0 -2px 6px rgba(0, 0, 0, 0.28) inset,
+    0 14px 30px -10px color-mix(in srgb, var(--gold-deep) 70%, transparent),
+    0 4px 10px rgba(0, 0, 0, 0.28);
+  transition: transform 220ms ease, filter 220ms ease;
+}
+.atelier-fab:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+.atelier-fab:active {
+  transform: translateY(0);
+}
+.atelier-fab::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1px solid var(--hairline-gold);
+  pointer-events: none;
+  animation: atelier-fab-pulse 3.6s ease-in-out infinite;
+}
+@keyframes atelier-fab-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.14);
+    opacity: 0;
+  }
+}
+
+@media (min-width: 640px) {
+  .atelier-fab {
+    right: calc(1.5rem + env(safe-area-inset-right, 0px));
+    bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Mobile pill nav
+   ───────────────────────────────────────────────────────────── */
+
+.atelier-mobile-nav {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(0.9rem + env(safe-area-inset-bottom, 0px));
+  z-index: 55;
+  display: inline-flex;
+  padding: 0.4rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  border: 1px solid var(--hairline-strong);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.45);
+}
+@media (min-width: 640px) {
+  .atelier-mobile-nav {
+    display: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Theme toggle button
+   ───────────────────────────────────────────────────────────── */
+
+.atelier-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: border-color 200ms ease, color 200ms ease, background 200ms ease;
+}
+.atelier-theme-toggle:hover {
+  border-color: var(--hairline-gold);
+  color: var(--gold);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Existing app overrides (visual layer transform of frosted-ui)
+   ───────────────────────────────────────────────────────────── */
+
+/* Embeds + phones: respect safe area */
 .nudge-app-shell {
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
 }
@@ -45,7 +669,7 @@ body {
   min-height: 2.75rem;
   font-size: 1rem;
   line-height: 1.4;
-  border-radius: 0.75rem;
+  border-radius: 0.625rem;
 }
 
 @media (min-width: 640px) {
@@ -53,25 +677,26 @@ body {
   .nudge-field textarea {
     min-height: 2.375rem;
     font-size: 0.875rem;
-    border-radius: 0.625rem;
   }
 }
 
 .nudge-card-surface {
-  border-radius: 1rem;
-  box-shadow: 0 1px 3px color-mix(in srgb, black 35%, transparent);
+  border-radius: 14px;
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--ink) 3%, transparent) inset,
+    0 1px 2px rgba(0, 0, 0, 0.18);
 }
 
-/**
- * Translucent “frosted” panel — same tokens as frosted-ui Popover (translucent).
- * Use sparingly so dense lists and forms stay easy to scan.
- */
 .nudge-card-frosted.fui-Card.fui-variant-surface {
-  background: var(--color-panel-translucent);
-  -webkit-backdrop-filter: var(--backdrop-filter-panel);
-  backdrop-filter: var(--backdrop-filter-panel);
-  outline: 0.5px solid var(--color-popover-outline);
-  box-shadow: var(--shadow-3);
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+  outline: 1px solid var(--hairline);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--ink) 3%, transparent) inset,
+    0 12px 32px -16px rgba(0, 0, 0, 0.38);
 }
 
 /* frosted-ui DatePicker: full-width field + calendar trigger aligned with other form controls */
@@ -98,4 +723,22 @@ body {
   .nudge-date-picker-root .fui-DateFieldInput {
     min-height: 2.375rem;
   }
+}
+
+/* Tabs: lend frosted-ui tabs the atelier silhouette */
+.fui-TabsList {
+  font-family: var(--font-manrope), sans-serif;
+}
+.fui-TabsTrigger {
+  letter-spacing: 0.01em;
+}
+
+/* Section headings: align frosted-ui Heading with display serif when class is applied */
+.fui-Heading.heading-display,
+.heading-display {
+  font-family: var(--font-fraunces), ui-serif, Georgia, serif;
+  font-optical-sizing: auto;
+  font-variation-settings: "opsz" 96, "SOFT" 25;
+  font-weight: 500;
+  letter-spacing: -0.012em;
 }

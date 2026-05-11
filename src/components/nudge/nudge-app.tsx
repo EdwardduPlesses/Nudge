@@ -1,15 +1,15 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
-import { Heading, Select, Tabs, Text } from "frosted-ui";
-import nudgeLogo from "@/app/assets/Nuget_logo_nobackfournd.png";
+import { format } from "date-fns";
+import { Select, Tabs } from "frosted-ui";
 import { ActivityTab } from "@/components/nudge/activity-tab";
 import { QuickAddExpenseButton } from "@/components/nudge/quick-add-expense-button";
 import { BudgetsTab } from "@/components/nudge/budgets-tab";
 import { DashboardTab } from "@/components/nudge/dashboard-tab";
 import { GoalsTab } from "@/components/nudge/goals-tab";
 import { InsightsTab } from "@/components/nudge/insights-tab";
+import { ThemeToggle } from "@/components/nudge/theme-toggle";
 import { displayCurrencyItems, useCurrency } from "@/context/currency-context";
 import type { DisplayCurrency } from "@/lib/currency-config";
 
@@ -20,12 +20,13 @@ function HeaderCurrencySelect() {
   const items = displayCurrencyItems();
 
   return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <Text size="1" weight="medium" color="gray" className="tracking-wide uppercase">
-        Currency
-      </Text>
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <span className="eyebrow">Currency</span>
       <Select.Root value={currency} onValueChange={(v) => setCurrency(v as DisplayCurrency)}>
-        <Select.Trigger placeholder="Currency" className="min-h-10 w-full max-w-[min(100%,16rem)] sm:max-w-[18rem]" />
+        <Select.Trigger
+          placeholder="Currency"
+          className="min-h-10 w-full max-w-[min(100%,16rem)] sm:max-w-[14rem]"
+        />
         <Select.Content>
           {items.map((it) => (
             <Select.Item key={it.code} value={it.code}>
@@ -40,47 +41,74 @@ function HeaderCurrencySelect() {
 
 export function NudgeApp(props: { devMode: boolean }) {
   const [tab, setTab] = useState<TabKey>("overview");
+  const today = format(new Date(), "EEEE, MMMM d");
 
   return (
-    <div className="nudge-app-shell mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6 overflow-x-hidden px-4 py-5 sm:gap-7 sm:px-6 sm:py-6">
-      <header className="flex flex-col gap-1 border-b border-gold-primary/20 pb-4 sm:pb-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="relative h-11 w-11 shrink-0">
-              <Image
-                src={nudgeLogo}
-                alt=""
-                width={44}
-                height={44}
-                className="h-full w-full object-contain object-center"
-                priority
+    <div className="nudge-app-shell mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-7 overflow-x-hidden px-4 py-6 sm:gap-9 sm:px-8 sm:py-8">
+      {/* ───── Masthead ───── */}
+      <header className="flex flex-col gap-5 border-b pb-6" style={{ borderColor: "var(--hairline)" }}>
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <span className="eyebrow">Private Ledger — Edition N°{format(new Date(), "yy.MM")}</span>
+            <h1
+              className="brand-wordmark mt-2"
+              style={{ fontSize: "clamp(2.4rem, 7vw, 3.5rem)" }}
+            >
+              Nudge
+            </h1>
+          </div>
+          <ThemeToggle />
+        </div>
+
+        <div
+          className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm"
+          style={{ color: "var(--ink-muted)" }}
+        >
+          <span className="inline-flex items-center gap-2">
+            <span aria-hidden style={{ color: "var(--gold)" }}>
+              ✦
+            </span>
+            <span className="tabular">{today}</span>
+          </span>
+          <span
+            aria-hidden
+            className="inline-block h-3 w-px"
+            style={{ background: "var(--hairline-strong)" }}
+          />
+          <span className="italic" style={{ fontFamily: "var(--font-fraunces), serif" }}>
+            Budget clarity, without the spreadsheet.
+          </span>
+          {props.devMode ? (
+            <>
+              <span
+                aria-hidden
+                className="inline-block h-3 w-px"
+                style={{ background: "var(--hairline-strong)" }}
               />
-            </div>
-            <div className="min-w-0">
-              <Heading size="6" className="text-gold-primary">
-                Nudge
-              </Heading>
-              <Text size="2" color="gray" className="leading-snug">
-                Budget clarity, without the spreadsheet.
-              </Text>
-            </div>
-          </div>
-          <div className="flex w-full shrink-0 flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-end sm:justify-end sm:gap-4">
-            <HeaderCurrencySelect />
-            {props.devMode ? (
-              <Text size="1" color="amber" className="max-w-[220px] leading-snug sm:max-w-none sm:pt-6">
-                Local dev preview — open in Whop for full sign-in.
-              </Text>
-            ) : null}
-          </div>
+              <span className="atelier-chip" data-tone="warm">
+                Dev preview
+              </span>
+            </>
+          ) : null}
+        </div>
+
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <HeaderCurrencySelect />
         </div>
       </header>
 
+      {/* ───── Tabs ───── */}
       <Tabs.Root value={tab} onValueChange={(v) => setTab(v as TabKey)} className="flex min-h-0 flex-1 flex-col">
-        <div className="-mx-1 rounded-2xl border border-gold-primary/15 bg-black/[0.025] p-1 dark:bg-white/[0.04]">
+        <div
+          className="-mx-1 rounded-xl p-1"
+          style={{
+            background: "var(--surface-2)",
+            border: "1px solid var(--hairline)",
+          }}
+        >
           <Tabs.List
             size="2"
-            className="w-full min-w-0 max-w-full justify-start gap-0 overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] sm:max-w-xl [&::-webkit-scrollbar]:hidden"
+            className="w-full min-w-0 max-w-full justify-start gap-0 overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] sm:max-w-2xl [&::-webkit-scrollbar]:hidden"
           >
             <Tabs.Trigger value="overview" className="shrink-0">
               Overview
@@ -100,7 +128,7 @@ export function NudgeApp(props: { devMode: boolean }) {
           </Tabs.List>
         </div>
 
-        <div className="mt-4 min-h-[min(320px,50vh)] min-w-0 flex-1 sm:mt-6">
+        <div className="mt-5 min-h-[min(320px,50vh)] min-w-0 flex-1 sm:mt-7">
           <Tabs.Content value="overview">
             <DashboardTab />
           </Tabs.Content>

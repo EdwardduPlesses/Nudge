@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Button, Card, Heading, Progress, Text, TextField } from "frosted-ui";
+import { Progress, TextField } from "frosted-ui";
 import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
 import {
@@ -67,25 +67,41 @@ export function BudgetsTab() {
     totalBudget > 0 ? Math.min(1, spent / totalBudget) : spent > 0 ? 1 : 0;
 
   return (
-    <div className="flex flex-col gap-7">
-      <div className="min-w-0">
-        <Heading size="6" className="tracking-tight">
+    <div className="flex flex-col gap-8">
+      {/* ───── Header ───── */}
+      <header className="min-w-0">
+        <span className="eyebrow">
+          <span className="eyebrow-gold">N°01</span>
+          <span aria-hidden style={{ margin: "0 0.5em", color: "var(--ink-faint)" }}>
+            —
+          </span>
+          Plan
+        </span>
+        <h2
+          className="heading-display mt-3"
+          style={{ color: "var(--ink)", fontSize: "clamp(1.6rem, 3.6vw, 2.15rem)", lineHeight: 1.1 }}
+        >
           Budgets
-        </Heading>
-        <Text size="2" color="gray" className="mt-2 max-w-prose leading-relaxed">
+        </h2>
+        <p className="mt-2 max-w-prose" style={{ color: "var(--ink-muted)", fontSize: "0.95rem", lineHeight: 1.55 }}>
           Income plan, usage across category limits, and monthly caps.
-        </Text>
-      </div>
+        </p>
+      </header>
 
-      <Card size="3" variant="surface" className="nudge-card-surface p-4 sm:p-5">
+      {/* ───── Income plan card ───── */}
+      <section className="atelier-card-elevated" style={{ padding: "1.4rem 1.5rem" }}>
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
-            <Heading size="4" className="tracking-tight">
-              Monthly income plan
-            </Heading>
-            <Text size="2" color="gray" className="mt-2 leading-relaxed">
+            <span className="eyebrow">Income plan</span>
+            <h3
+              className="heading-display mt-1.5"
+              style={{ color: "var(--ink)", fontSize: "1.25rem", lineHeight: 1.2 }}
+            >
+              Monthly income
+            </h3>
+            <p className="mt-1" style={{ color: "var(--ink-muted)", fontSize: "0.86rem", lineHeight: 1.5 }}>
               Expected cash in for the month (feeds your Overview “left this month”).
-            </Text>
+            </p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
             <label className="sr-only" htmlFor="budgets-income-plan-input">
@@ -114,35 +130,55 @@ export function BudgetsTab() {
                 }}
               />
             </TextField.Root>
-            <Text size="2" color="gray" className="shrink-0 pt-0.5 sm:pt-0">
+            <span
+              className="shrink-0 tabular"
+              style={{ color: "var(--ink-muted)", fontSize: "0.86rem" }}
+            >
               {c.currency === "USD" ? "USD" : c.currency} / mo
-            </Text>
+            </span>
           </div>
         </div>
+
         <div className="mt-6">
-          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
-            <Text size="2" weight="medium">
-              Budget usage
-            </Text>
-            <Text size="2" color="gray" className="min-w-0 text-right">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <span className="eyebrow">Budget usage</span>
+            <span
+              className="tabular"
+              style={{ color: "var(--ink-muted)", fontSize: "0.82rem" }}
+            >
               {Math.round(budgetUsedRatio * 100)}% of category limits
-            </Text>
+            </span>
           </div>
           <Progress value={budgetUsedRatio * 100} color="gold" />
         </div>
-      </Card>
+      </section>
 
-      <div className="flex flex-col gap-4">
+      <div className="atelier-rule" role="presentation">
+        <span aria-hidden>✦</span>
+      </div>
+
+      {/* ───── Category list ───── */}
+      <section aria-label="Categories" className="flex flex-col gap-3">
+        <div className="flex items-end justify-between">
+          <span className="eyebrow">
+            <span className="eyebrow-gold">N°02</span>
+            <span aria-hidden style={{ margin: "0 0.5em", color: "var(--ink-faint)" }}>
+              —
+            </span>
+            Categories
+          </span>
+          <span className="eyebrow tabular" style={{ color: "var(--ink-faint)" }}>
+            {String(state.categories.length).padStart(2, "0")} entries
+          </span>
+        </div>
         {state.categories.map((cat) => {
           const spent = categorySpendThisMonth(cat.id, state.transactions, new Date());
           const pct = cat.budgetLimit > 0 ? Math.min(100, (spent / cat.budgetLimit) * 100) : 0;
           return (
-            <Card key={cat.id} size="3" variant="surface" className="nudge-card-surface">
-              <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-start md:gap-x-8">
+            <article key={cat.id} className="atelier-card" style={{ padding: "1.1rem 1.25rem" }}>
+              <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-start md:gap-x-8">
                 <div className="flex min-w-0 flex-col gap-3">
-                  <Text size="2" weight="medium" className="text-foreground/80">
-                    Category
-                  </Text>
+                  <span className="eyebrow">Category</span>
                   <TextField.Root className="nudge-field w-full" key={cat.id}>
                     <TextField.Input
                       autoComplete="off"
@@ -155,41 +191,60 @@ export function BudgetsTab() {
                   </TextField.Root>
                   <div className="flex min-w-0 items-center gap-2">
                     <span
-                      className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                      className="inline-block h-2 w-2 shrink-0 rounded-full"
                       style={{ backgroundColor: cat.color }}
                       aria-hidden
                     />
-                    <Text size="2" color="gray" className="min-w-0 break-words tabular-nums">
+                    <span
+                      className="min-w-0 break-words tabular"
+                      style={{ color: "var(--ink-muted)", fontSize: "0.85rem" }}
+                    >
                       Spent {fmt(spent)} of {fmt(cat.budgetLimit)}
-                    </Text>
+                    </span>
                   </div>
                   <Progress value={pct} color={pct > 100 ? "ruby" : "gold"} />
                 </div>
-                <div className="flex w-full flex-col gap-2 border-t border-gray-600/15 pt-4 md:border-t-0 md:pt-0">
-                  <Text size="2" weight="medium" className="text-foreground/80">
+                <div
+                  className="flex w-full flex-col gap-2 pt-3 md:pt-0"
+                  style={{ borderTop: "1px solid var(--hairline)" }}
+                >
+                  <span className="eyebrow md:mt-0" style={{ paddingTop: "0.75rem" }}>
                     Monthly cap {c.amountApproxLabel}
-                  </Text>
+                  </span>
                   <CapInput categoryId={cat.id} budgetLimitUsd={cat.budgetLimit} />
                 </div>
               </div>
-            </Card>
+            </article>
           );
         })}
+      </section>
+
+      <div className="atelier-rule" role="presentation">
+        <span aria-hidden>✦</span>
       </div>
 
-      <Card size="3" variant="classic" className="nudge-card-surface">
-        <Heading size="4" className="mb-1 tracking-tight">
+      {/* ───── Add category ───── */}
+      <section className="atelier-card-elevated" style={{ padding: "1.4rem 1.5rem" }}>
+        <span className="eyebrow">
+          <span className="eyebrow-gold">N°03</span>
+          <span aria-hidden style={{ margin: "0 0.5em", color: "var(--ink-faint)" }}>
+            —
+          </span>
+          New entry
+        </span>
+        <h3
+          className="heading-display mt-1.5"
+          style={{ color: "var(--ink)", fontSize: "1.25rem", lineHeight: 1.2 }}
+        >
           Add category
-        </Heading>
-        <Text size="2" color="gray" className="mb-5 leading-relaxed">
+        </h3>
+        <p className="mt-1 mb-5" style={{ color: "var(--ink-muted)", fontSize: "0.86rem", lineHeight: 1.55 }}>
           Create a bucket and set how much you want to spend per month.
-        </Text>
+        </p>
         <div className="flex flex-col gap-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
-                Name
-              </Text>
+              <span className="eyebrow mb-2 block">Name</span>
               <TextField.Root className="nudge-field w-full">
                 <TextField.Input
                   placeholder="Subscriptions"
@@ -200,9 +255,7 @@ export function BudgetsTab() {
               </TextField.Root>
             </div>
             <div>
-              <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
-                Monthly cap {c.amountApproxLabel}
-              </Text>
+              <span className="eyebrow mb-2 block">Monthly cap {c.amountApproxLabel}</span>
               <TextField.Root className="nudge-field w-full">
                 <TextField.Input
                   type="number"
@@ -217,10 +270,9 @@ export function BudgetsTab() {
               </TextField.Root>
             </div>
           </div>
-          <Button
-            size="3"
-            color="gold"
-            className="w-full shadow-sm sm:w-auto sm:self-start"
+          <button
+            type="button"
+            className="atelier-btn-gold w-full sm:w-auto sm:self-start"
             onClick={() => {
               const n = Number.parseFloat(newCap);
               const capUsd = Number.isFinite(n) ? c.displayAmountAsUsd(n) : 0;
@@ -229,10 +281,13 @@ export function BudgetsTab() {
               setNewCap("200");
             }}
           >
+            <span aria-hidden style={{ fontSize: "1rem", lineHeight: 1 }}>
+              ✦
+            </span>
             Add category
-          </Button>
+          </button>
         </div>
-      </Card>
+      </section>
     </div>
   );
 }

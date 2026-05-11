@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { Badge, Card, Heading, Text } from "frosted-ui";
 import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
 import { computeMonthlyRemaining } from "@/lib/budget/monthly-remaining";
@@ -10,12 +9,13 @@ import { computeMonthlySpendingVelocity } from "@/lib/budget/velocity";
 function SupportStat(props: { label: string; value: string }) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <Text size="2" color="gray" className="font-medium leading-snug">
-        {props.label}
-      </Text>
-      <Text size="3" weight="medium" className="min-w-0 tabular-nums leading-snug">
+      <span className="eyebrow">{props.label}</span>
+      <span
+        className="tabular"
+        style={{ color: "var(--ink)", fontSize: "0.98rem", fontWeight: 500, lineHeight: 1.25 }}
+      >
         {props.value}
-      </Text>
+      </span>
     </div>
   );
 }
@@ -30,12 +30,13 @@ export function OverviewHero() {
     [state.transactions, state.categories],
   );
 
-  const ring =
-    snap.needsIncomePlan || (!snap.isOverBudget && snap.availableThisMonthUsd >= 0)
-      ? snap.needsIncomePlan
-        ? "ring-1 ring-gray-500/15"
-        : "ring-1 ring-emerald-500/20"
-      : "ring-1 ring-ruby-500/22";
+  const dataTone: "overdue" | "warm" | "success" | undefined = snap.needsIncomePlan
+    ? "warm"
+    : snap.isOverBudget
+      ? "overdue"
+      : snap.availableThisMonthUsd >= 0
+        ? "success"
+        : undefined;
 
   const pctLine =
     snap.remainingPercent != null ? `${Math.round(snap.remainingPercent)}% remaining` : "—";
@@ -72,89 +73,138 @@ export function OverviewHero() {
     Number.isFinite(v.safeDailyUsd) &&
     v.safeDailyUsd > 0;
 
+  // Hero numeral color: keep gold sacred for affirmation only
+  const numeralColor = snap.isOverBudget
+    ? "var(--tone-overdue)"
+    : snap.needsIncomePlan
+      ? "var(--ink)"
+      : "var(--ink)";
+
   return (
-    <Card size="3" variant="surface" className={`nudge-card-surface nudge-card-frosted ${ring}`}>
-      <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-10">
+    <section
+      className="atelier-card-elevated"
+      data-tone={dataTone}
+      style={{ padding: "clamp(1.25rem, 3vw, 2rem)" }}
+    >
+      <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-12">
+        {/* ─ Hero numeral ─ */}
         <div className="min-w-0 flex-1">
-          <Badge color="gold" size="1" className="font-medium">
-            Left this month
-          </Badge>
+          <div className="flex items-center gap-2">
+            <span aria-hidden style={{ color: "var(--gold)" }}>
+              ✦
+            </span>
+            <span className="eyebrow">
+              {snap.needsIncomePlan ? "Awaiting income plan" : snap.isOverBudget ? "Over by" : "Left this month"}
+            </span>
+          </div>
+
           {snap.needsIncomePlan ? (
             <>
-              <Heading
-                size="7"
-                className="mt-4 min-w-0 tracking-tight text-gray-950 dark:text-white"
+              <p
+                className="heading-display mt-4"
+                style={{
+                  color: "var(--ink)",
+                  fontSize: "clamp(2rem, 5.5vw, 2.75rem)",
+                  lineHeight: 1.05,
+                  letterSpacing: "-0.015em",
+                }}
               >
                 Set monthly income
-              </Heading>
-              <Text size="3" color="gray" className="mt-2 leading-relaxed">
-                Add your plan under{" "}
-                <span className="font-medium text-foreground/90">Budgets</span> to see what&apos;s
-                left.
-              </Text>
-            </>
-          ) : snap.isOverBudget ? (
-            <div className="mt-4 flex min-w-0 flex-col gap-2">
-              <Text size="2" weight="medium" color="ruby" className="uppercase tracking-wide">
-                Over by
-              </Text>
-              <p className="text-5xl font-semibold tracking-tight wrap-break-word tabular-nums text-ruby-600 sm:text-6xl dark:text-ruby-400">
-                {formatFromUsd(Math.abs(snap.availableThisMonthUsd))}
               </p>
-              <Text size="3" color="gray" className="leading-relaxed">
-                vs. your income baseline this month
-              </Text>
-            </div>
+              <p className="mt-3 max-w-md" style={{ color: "var(--ink-muted)", lineHeight: 1.6 }}>
+                Add your plan under{" "}
+                <span style={{ color: "var(--ink)", fontWeight: 600 }}>Budgets</span> to see what&apos;s
+                left.
+              </p>
+            </>
           ) : (
             <div className="mt-4 flex min-w-0 flex-col gap-2">
-              <p className="text-5xl font-semibold tracking-tight wrap-break-word tabular-nums text-gray-950 sm:text-6xl dark:text-white">
-                {formatFromUsd(snap.availableThisMonthUsd)}
+              <p
+                className="heading-display tabular wrap-break-word"
+                style={{
+                  color: numeralColor,
+                  fontSize: "clamp(2.75rem, 8vw, 4.25rem)",
+                  fontWeight: 400,
+                  lineHeight: 1,
+                  letterSpacing: "-0.02em",
+                  fontVariationSettings: '"opsz" 144, "SOFT" 20',
+                }}
+              >
+                {formatFromUsd(
+                  snap.isOverBudget
+                    ? Math.abs(snap.availableThisMonthUsd)
+                    : snap.availableThisMonthUsd,
+                )}
               </p>
-              <Text size="3" weight="medium" color="gray" className="leading-relaxed">
-                left this month
-              </Text>
+              <p
+                style={{
+                  color: "var(--ink-muted)",
+                  fontSize: "0.92rem",
+                  letterSpacing: "0.02em",
+                }}
+              >
+                {snap.isOverBudget ? "vs. your income baseline this month" : "left this month"}
+              </p>
             </div>
           )}
         </div>
 
+        {/* ─ Safe-to-spend aside ─ */}
         {showSafeToSpend ? (
-          <div className="rounded-2xl border border-gray-600/12 bg-gray-900/3 p-5 dark:bg-white/4 lg:max-w-sm lg:shrink-0">
-            <Text size="2" color="gray" weight="medium" className="block leading-snug">
-              Safe to spend
-            </Text>
-            <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums text-gray-950 sm:text-4xl dark:text-white">
+          <aside
+            className="atelier-card lg:max-w-sm lg:shrink-0"
+            style={{ padding: "1.25rem 1.4rem" }}
+          >
+            <span className="eyebrow">
+              <span className="eyebrow-gold">✦</span>
+              <span style={{ marginLeft: "0.4em" }}>Safe to spend today</span>
+            </span>
+            <p
+              className="heading-display tabular mt-3"
+              style={{
+                color: "var(--ink)",
+                fontSize: "clamp(1.85rem, 4vw, 2.4rem)",
+                fontWeight: 400,
+                lineHeight: 1,
+                letterSpacing: "-0.015em",
+              }}
+            >
               {formatFromUsd(v.safeDailyUsd!)}
             </p>
-            <Text size="2" color="gray" className="mt-1 leading-relaxed">
+            <p className="mt-2" style={{ color: "var(--ink-muted)", fontSize: "0.85rem", lineHeight: 1.55 }}>
               You can spend this much today.
-            </Text>
-          </div>
+            </p>
+          </aside>
         ) : null}
       </div>
 
       {insightLine ? (
-        <Text
-          size="3"
-          weight="medium"
-          color="gray"
-          className="mt-6 max-w-3xl leading-relaxed lg:mt-8"
+        <p
+          className="mt-7 max-w-3xl italic"
+          style={{
+            color: "var(--ink-soft)",
+            fontFamily: "var(--font-fraunces), serif",
+            fontSize: "1rem",
+            lineHeight: 1.6,
+          }}
         >
-          {insightLine}
-        </Text>
+          “{insightLine}”
+        </p>
       ) : null}
 
-      <div className="mt-8 grid gap-4 border-t border-gray-600/10 pt-6 sm:grid-cols-3 dark:border-white/10">
+      <div
+        className="mt-8 grid gap-5 pt-6 sm:grid-cols-3"
+        style={{ borderTop: "1px solid var(--hairline)" }}
+      >
         <SupportStat
           label="Income planned"
           value={
-            snap.needsIncomePlan
-              ? "Not set"
-              : `${formatFromUsd(snap.monthlyIncomeUsd)} / mo`
+            snap.needsIncomePlan ? "Not set" : `${formatFromUsd(snap.monthlyIncomeUsd)} / mo`
           }
         />
         <SupportStat label="Spent so far" value={formatFromUsd(snap.currentMonthExpensesUsd)} />
         <SupportStat label="Remaining" value={remainingSecondary} />
       </div>
-    </Card>
+    </section>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button } from "frosted-ui";
 import { AiMoneyPlanModal } from "@/components/nudge/ai/ai-money-plan-modal";
 import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
@@ -19,18 +18,17 @@ export function AiMoneyPlanCta() {
 
   return (
     <>
-      <Button
-        variant="soft"
-        color="gray"
-        size="3"
+      <button
         type="button"
-        className="w-full shrink-0 border-gray-600/35 shadow-sm backdrop-blur-sm sm:w-auto"
+        className="atelier-btn-ghost w-full sm:w-auto"
         aria-label="Generate AI Money Plan"
         onClick={() => setOpen(true)}
       >
-        <span aria-hidden>✦{" "}</span>
+        <span aria-hidden style={{ color: "var(--gold)" }}>
+          ✦
+        </span>
         Generate AI Money Plan
-      </Button>
+      </button>
       <AiMoneyPlanModal open={open} onOpenChange={setOpen} prompt={prompt} />
     </>
   );
