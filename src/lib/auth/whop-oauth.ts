@@ -35,6 +35,7 @@ export function pkceChallengeFromVerifier(verifier: string): string {
 
 export function buildWhopAuthorizeUrl(opts: {
   state: string;
+  nonce: string;
   codeChallenge: string;
   redirectUri: string;
   scopes?: string[];
@@ -45,6 +46,7 @@ export function buildWhopAuthorizeUrl(opts: {
     redirect_uri: opts.redirectUri,
     scope: (opts.scopes ?? DEFAULT_SCOPES).join(" "),
     state: opts.state,
+    nonce: opts.nonce,
     code_challenge: opts.codeChallenge,
     code_challenge_method: "S256",
   });

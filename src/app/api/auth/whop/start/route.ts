@@ -18,12 +18,13 @@ export async function GET(req: Request) {
   const next = SAFE_NEXT_RE.test(rawNext) ? rawNext : "/app";
 
   const state = randomBytes(24).toString("hex");
+  const nonce = randomBytes(16).toString("hex");
   const verifier = generatePkceVerifier();
   const codeChallenge = pkceChallengeFromVerifier(verifier);
 
   const cookieValue = encodeOAuthState({ state, next, verifier });
   const redirectUri = getWhopOAuthRedirectUri();
-  const authorizeUrl = buildWhopAuthorizeUrl({ state, codeChallenge, redirectUri });
+  const authorizeUrl = buildWhopAuthorizeUrl({ state, nonce, codeChallenge, redirectUri });
 
   const res = NextResponse.redirect(authorizeUrl, { status: 302 });
   res.cookies.set(NUDGE_OAUTH_STATE_COOKIE, cookieValue, {
