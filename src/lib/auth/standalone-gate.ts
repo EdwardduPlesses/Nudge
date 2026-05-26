@@ -3,43 +3,38 @@ import { whopsdk } from "@/lib/whop-sdk";
 /**
  * Standalone access gate — is this user allowed to use Nudge outside the Whop iframe?
  *
- * Passes if EITHER:
- *   (a) the user holds at least one active Whop membership visible to this app, OR
- *   (b) the user is an authorized team member (admin/owner) of a company that has
- *       Nudge installed.
+ * History:
+ *   - Original plan called `experiences.list({ user_id })` — the SDK doesn't
+ *     accept that filter.
+ *   - First attempt: `memberships.list({ user_ids })` + `authorizedUsers.list({ user_id })`.
+ *     Both return 400 "You are not authorized - ensure that you have access to
+ *     this resource" because Whop requires a `company_id` filter on those
+ *     endpoints; we don't know the company at OAuth-callback time.
  *
- * The iframe's `users.checkAccess(experienceId, userId)` covers both cases
- * implicitly; we have to OR them ourselves out here because there is no
- * "experienceId" to scope against.
+ * Current approach: ask Whop directly whether the user has access to *this app*
+ * via `users.checkAccess(NEXT_PUBLIC_WHOP_APP_ID, { id: userId })`. On any API
+ * error (e.g. if Whop doesn't accept the app id as a resource for that endpoint)
+ * we fall back to allowing — OAuth completion already requires a valid Whop
+ * account that authorized this app, which is a real (if soft) gate.
+ *
+ * Tighten by replacing the fallback with `return false` once we confirm a
+ * reliable Whop call for "does this user have access to anything in this app".
  */
 export async function userHasAnyNudgeMembership(userId: string): Promise<boolean> {
-  const [membership, teamMember] = await Promise.all([
-    hasActiveMembership(userId),
-    isAuthorizedTeamMember(userId),
-  ]);
-  return membership || teamMember;
-}
-
-async function hasActiveMembership(userId: string): Promise<boolean> {
-  try {
-    const page = await whopsdk.memberships.list({
-      user_ids: [userId],
-      statuses: ["active"],
-      first: 1,
-    });
-    return Array.isArray(page.data) && page.data.length > 0;
-  } catch (err) {
-    console.error("[Nudge] standalone gate: memberships.list failed", err);
-    return false;
+  const appId = process.env.NEXT_PUBLIC_WHOP_APP_ID;
+  if (!appId) {
+    console.warn("[Nudge] standalone gate: NEXT_PUBLIC_WHOP_APP_ID not set; allowing OAuth-verified user");
+    return true;
   }
-}
 
-async function isAuthorizedTeamMember(userId: string): Promise<boolean> {
   try {
-    const page = await whopsdk.authorizedUsers.list({ user_id: userId, first: 1 });
-    return Array.isArray(page.data) && page.data.length > 0;
+    const result = await whopsdk.users.checkAccess(appId, { id: userId });
+    return result.has_access === true;
   } catch (err) {
-    console.error("[Nudge] standalone gate: authorizedUsers.list failed", err);
-    return false;
+    console.warn(
+      "[Nudge] standalone gate: users.checkAccess(appId) failed; allowing OAuth-verified user",
+      err,
+    );
+    return true;
   }
 }
