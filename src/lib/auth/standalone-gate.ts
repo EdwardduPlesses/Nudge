@@ -1,19 +1,19 @@
 import { whopsdk } from "@/lib/whop-sdk";
 
 /**
- * Standalone access gate — checks whether a user holds at least one active
- * membership to a product that has Nudge installed.
+ * Standalone access gate — does the user have any active Whop membership that
+ * this app (Nudge) can see?
  *
- * DEVIATION FROM SPEC: The plan specified `whopsdk.experiences.list({ user_id })`,
- * but `ExperienceListParams` in node_modules/@whop/sdk/resources/experiences.d.ts
- * requires `company_id` and has NO `user_id` filter. That SDK method cannot be
- * used to enumerate experiences for a given user.
+ * We call `whopsdk.memberships.list` with the app's `WHOP_API_KEY`. Whop scopes
+ * app API keys to memberships in products that include the calling app, so the
+ * result should already be Nudge-relevant. If smoke-testing reveals unrelated
+ * memberships passing the gate, tighten this by either filtering on
+ * `product_ids` (if we maintain a list of Nudge products) or by calling
+ * `experiences.list({ company_id })` per company the user is a member of.
  *
- * We instead use `whopsdk.memberships.list({ user_ids: [userId], statuses: ["active"], first: 1 })`,
- * which is typed in `MembershipListParams` and returns a `CursorPage` whose
- * `.data` array contains matching memberships. An active membership means the
- * user has purchased a Whop product that uses this app, which is the correct
- * proxy for "has Nudge access".
+ * DEVIATION FROM SPEC: the plan specified `experiences.list({ user_id })`, but
+ * `ExperienceListParams` in @whop/sdk has no `user_id` filter — it requires
+ * `company_id`. `memberships.list` is the closest equivalent that's user-scoped.
  */
 export async function userHasAnyNudgeMembership(userId: string): Promise<boolean> {
   try {

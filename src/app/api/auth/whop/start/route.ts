@@ -10,7 +10,7 @@ import { NUDGE_OAUTH_STATE_COOKIE, encodeOAuthState } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
-const SAFE_NEXT_RE = /^\/[A-Za-z0-9/_\-?=&%.]*$/;
+const SAFE_NEXT_RE = /^\/(?!\/)[A-Za-z0-9/_\-?=&%.]*$/;
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
