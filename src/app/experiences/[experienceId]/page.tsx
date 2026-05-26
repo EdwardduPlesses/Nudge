@@ -148,6 +148,27 @@ export default async function ExperiencePage({
     );
   }
 
+  // Remember this experience id so the standalone gate has something to call
+  // `users.checkAccess` against later. Skip when the dev-preview user is active
+  // — it's a synthetic id with no Whop access of its own.
+  if (!devPreview) {
+    try {
+      const { getSupabaseAdmin } = await import("@/lib/supabase/admin");
+      const supabase = getSupabaseAdmin();
+      const { error: profileErr } = await supabase
+        .from("nudge_profiles")
+        .upsert(
+          { whop_user_id: userId, last_experience_id: experienceId },
+          { onConflict: "whop_user_id" },
+        );
+      if (profileErr) {
+        console.warn("[Nudge] last_experience_id upsert failed", profileErr);
+      }
+    } catch (err) {
+      console.warn("[Nudge] last_experience_id upsert threw", err);
+    }
+  }
+
   let remoteBudget: { snapshot: BudgetState | null };
   try {
     remoteBudget = { snapshot: await fetchBudgetStateFromSupabase(userId) };

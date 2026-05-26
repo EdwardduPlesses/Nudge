@@ -1,40 +1,43 @@
 import { whopsdk } from "@/lib/whop-sdk";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 /**
- * Standalone access gate — is this user allowed to use Nudge outside the Whop iframe?
+ * Standalone access gate — does this user have an active Whop purchase
+ * granting access to Nudge?
  *
- * History:
- *   - Original plan called `experiences.list({ user_id })` — the SDK doesn't
- *     accept that filter.
- *   - First attempt: `memberships.list({ user_ids })` + `authorizedUsers.list({ user_id })`.
- *     Both return 400 "You are not authorized - ensure that you have access to
- *     this resource" because Whop requires a `company_id` filter on those
- *     endpoints; we don't know the company at OAuth-callback time.
+ * Whop's only reliable user-scoped access check is
+ * `users.checkAccess(resourceId, { id })`, and the resourceId must be an
+ * experience, product, or company — not the app id. So we remember the most
+ * recent experience id the user accessed Nudge from via the iframe (stored as
+ * `nudge_profiles.last_experience_id`) and use that here.
  *
- * Current approach: ask Whop directly whether the user has access to *this app*
- * via `users.checkAccess(NEXT_PUBLIC_WHOP_APP_ID, { id: userId })`. On any API
- * error (e.g. if Whop doesn't accept the app id as a resource for that endpoint)
- * we fall back to allowing — OAuth completion already requires a valid Whop
- * account that authorized this app, which is a real (if soft) gate.
- *
- * Tighten by replacing the fallback with `return false` once we confirm a
- * reliable Whop call for "does this user have access to anything in this app".
+ * Consequence: a user who has never opened Nudge from their Whop community
+ * cannot sign in via standalone — the gate has nothing to check against. The
+ * callback error page tells them to open Nudge from their community first.
  */
 export async function userHasAnyNudgeMembership(userId: string): Promise<boolean> {
-  const appId = process.env.NEXT_PUBLIC_WHOP_APP_ID;
-  if (!appId) {
-    console.warn("[Nudge] standalone gate: NEXT_PUBLIC_WHOP_APP_ID not set; allowing OAuth-verified user");
-    return true;
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("nudge_profiles")
+    .select("last_experience_id")
+    .eq("whop_user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[Nudge] standalone gate: nudge_profiles lookup failed", error);
+    return false;
+  }
+  const experienceId = data?.last_experience_id;
+  if (!experienceId) {
+    console.log("[Nudge] standalone gate: no last_experience_id for user", userId);
+    return false;
   }
 
   try {
-    const result = await whopsdk.users.checkAccess(appId, { id: userId });
+    const result = await whopsdk.users.checkAccess(experienceId, { id: userId });
     return result.has_access === true;
   } catch (err) {
-    console.warn(
-      "[Nudge] standalone gate: users.checkAccess(appId) failed; allowing OAuth-verified user",
-      err,
-    );
-    return true;
+    console.error("[Nudge] standalone gate: users.checkAccess failed", err);
+    return false;
   }
 }
