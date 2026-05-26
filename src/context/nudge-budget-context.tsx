@@ -69,9 +69,8 @@ export function NudgeBudgetProvider(props: {
       return;
     }
     const t = setTimeout(() => {
-      const q = new URLSearchParams({ experienceId: props.experienceId });
       void fetch(
-        `/api/budget-state?${q}`,
+        `/api/budget-state`,
         nudgeBudgetFetchInit(props.whopUserToken, {
           method: "PUT",
           credentials: "include",
@@ -83,7 +82,7 @@ export function NudgeBudgetProvider(props: {
       });
     }, 650);
     return () => clearTimeout(t);
-  }, [hydrated, props.experienceId, props.whopUserToken, state]);
+  }, [hydrated, props.whopUserToken, state]);
 
   const setIncomePlan = useCallback((n: number) => {
     setState((s) => ({ ...s, incomePlan: Math.max(0, n) }));

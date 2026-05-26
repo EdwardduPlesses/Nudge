@@ -150,7 +150,7 @@ export default async function ExperiencePage({
 
   let remoteBudget: { snapshot: BudgetState | null };
   try {
-    remoteBudget = { snapshot: await fetchBudgetStateFromSupabase(experienceId, userId) };
+    remoteBudget = { snapshot: await fetchBudgetStateFromSupabase(userId) };
   } catch (err) {
     console.error("[Nudge] Failed to load budget from Supabase", err);
     remoteBudget = { snapshot: null };

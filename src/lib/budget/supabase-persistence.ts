@@ -69,14 +69,12 @@ function mapGoal(r: {
 }
 
 export async function fetchBudgetStateFromSupabase(
-  experienceId: string,
   whopUserId: string,
 ): Promise<BudgetState | null> {
   const supabase = getSupabaseAdmin();
   const { data: wb, error: wbErr } = await supabase
     .from("nudge_workbooks")
     .select("id, income_plan")
-    .eq("experience_id", experienceId)
     .eq("whop_user_id", whopUserId)
     .maybeSingle();
 
@@ -113,7 +111,6 @@ export async function fetchBudgetStateFromSupabase(
 }
 
 export async function replaceBudgetStateInSupabase(
-  experienceId: string,
   whopUserId: string,
   state: BudgetState,
 ): Promise<void> {
@@ -129,12 +126,11 @@ export async function replaceBudgetStateInSupabase(
     .from("nudge_workbooks")
     .upsert(
       {
-        experience_id: experienceId,
         whop_user_id: whopUserId,
         income_plan: state.incomePlan,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: "experience_id,whop_user_id" },
+      { onConflict: "whop_user_id" },
     )
     .select("id")
     .single();
