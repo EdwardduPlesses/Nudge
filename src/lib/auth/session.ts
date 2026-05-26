@@ -15,6 +15,7 @@ export type NudgeSessionClaims = {
 export type NudgeOAuthStateClaims = {
   state: string;        // random CSRF token
   next: string;         // post-callback redirect path (must be same-origin)
+  verifier: string;     // PKCE code_verifier
   iat: number;
   exp: number;
 };
@@ -85,7 +86,7 @@ export function encodeOAuthState(claims: Omit<NudgeOAuthStateClaims, "iat" | "ex
 export function decodeOAuthState(token: string): NudgeOAuthStateClaims | null {
   const c = decode<NudgeOAuthStateClaims>(token);
   if (!c) return null;
-  if (typeof c.state !== "string" || typeof c.next !== "string") return null;
+  if (typeof c.state !== "string" || typeof c.next !== "string" || typeof c.verifier !== "string") return null;
   if (c.exp <= Math.floor(Date.now() / 1000)) return null;
   return c;
 }
