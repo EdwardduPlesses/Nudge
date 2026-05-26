@@ -97,6 +97,8 @@ Defined in **`src/lib/budget/types.ts`**:
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-only Supabase key (required for budget app) |
 | `NUDGE_STRICT_WHOP` | Set to `1` to disable dev preview user and stricter local gates |
 | `NUDGE_DEV_LANDING` | Set to `1` in dev to show `/` instead of redirecting to `/experiences/dev` |
+| `WHOP_OAUTH_REDIRECT_URI` | Full URL of `/api/auth/whop/callback`; must be registered in Whop app settings |
+| `NUDGE_SESSION_SECRET` | HS256 key for session and OAuth-state cookies (32+ chars; 64+ recommended) |
 
 Copy **`.env.example`** into **`.env.local`** and fill in values.
 
