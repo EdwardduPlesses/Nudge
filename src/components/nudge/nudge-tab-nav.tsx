@@ -122,20 +122,26 @@ const TABS: TabSpec[] = [
 export function NudgeTabNav(props: {
   value: NudgeTabKey;
   onChange: (next: NudgeTabKey) => void;
+  desktopRight?: React.ReactNode;
 }) {
   return (
     <>
-      <DesktopTabNav value={props.value} onChange={props.onChange} />
+      <DesktopTabNav
+        value={props.value}
+        onChange={props.onChange}
+        right={props.desktopRight}
+      />
       <MobileTabNav value={props.value} onChange={props.onChange} />
     </>
   );
 }
 
-/* ─────────── Desktop: pill nav with sliding indicator ─────────── */
+/* ─────────── Desktop: full-width command bar with sliding indicator ─────────── */
 
 function DesktopTabNav(props: {
   value: NudgeTabKey;
   onChange: (next: NudgeTabKey) => void;
+  right?: React.ReactNode;
 }) {
   const listRef = useRef<HTMLDivElement | null>(null);
   const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -164,12 +170,12 @@ function DesktopTabNav(props: {
   }, [props.value]);
 
   return (
-    <nav
-      aria-label="Sections"
-      className="nudge-tabnav-desktop hidden sm:block"
-      role="tablist"
-    >
-      <div ref={listRef} className="nudge-tabnav-desktop__list">
+    <div className="nudge-tabnav-desktop hidden sm:flex" aria-label="Sections">
+      <nav
+        ref={listRef}
+        className="nudge-tabnav-desktop__list"
+        role="tablist"
+      >
         <span
           aria-hidden
           className="nudge-tabnav-desktop__indicator"
@@ -203,8 +209,11 @@ function DesktopTabNav(props: {
             </button>
           );
         })}
-      </div>
-    </nav>
+      </nav>
+      {props.right ? (
+        <div className="nudge-tabnav-desktop__actions">{props.right}</div>
+      ) : null}
+    </div>
   );
 }
 

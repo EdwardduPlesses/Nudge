@@ -40,14 +40,48 @@ function HeaderCurrencySelect() {
   );
 }
 
+function CommandBarCurrencySelect() {
+  const { currency, setCurrency } = useCurrency();
+  const items = displayCurrencyItems();
+  return (
+    <Select.Root value={currency} onValueChange={(v) => setCurrency(v as DisplayCurrency)}>
+      <Select.Trigger
+        placeholder="Currency"
+        aria-label="Display currency"
+        className="nudge-cmdbar-currency"
+      />
+      <Select.Content>
+        {items.map((it) => (
+          <Select.Item key={it.code} value={it.code}>
+            {it.label}
+          </Select.Item>
+        ))}
+      </Select.Content>
+    </Select.Root>
+  );
+}
+
+function SignOutButton() {
+  return (
+    <form action="/api/auth/logout" method="post">
+      <button type="submit" className="nudge-cmdbar-link">
+        Sign out
+      </button>
+    </form>
+  );
+}
+
 export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
   const [tab, setTab] = useState<TabKey>("overview");
   const today = format(new Date(), "EEEE, MMMM d");
 
   return (
-    <div className="nudge-app-shell mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-7 overflow-x-hidden px-4 py-6 sm:gap-9 sm:px-8 sm:py-8">
+    <div className="nudge-app-shell mx-auto flex min-h-0 w-full max-w-[88rem] flex-1 flex-col gap-7 overflow-x-hidden px-4 py-6 sm:gap-8 sm:px-8 sm:py-8">
       {/* ───── Masthead ───── */}
-      <header className="flex flex-col gap-5 border-b pb-6" style={{ borderColor: "var(--hairline)" }}>
+      <header
+        className="flex flex-col gap-5 border-b pb-6 sm:gap-4 sm:border-0 sm:pb-0"
+        style={{ borderColor: "var(--hairline)" }}
+      >
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <span className="eyebrow">Private Ledger — Edition N°{format(new Date(), "yy.MM")}</span>
@@ -58,7 +92,8 @@ export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
               Nudge
             </h1>
           </div>
-          <div className="flex items-center gap-3">
+          {/* Mobile-only actions; desktop puts these in the command bar */}
+          <div className="flex items-center gap-3 sm:hidden">
             {props.showSignOut ? (
               <form action="/api/auth/logout" method="post">
                 <button
@@ -105,17 +140,33 @@ export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
           ) : null}
         </div>
 
-        <div className="flex flex-wrap items-end justify-between gap-4">
+        {/* Mobile-only currency selector; desktop puts this in the command bar */}
+        <div className="flex flex-wrap items-end justify-between gap-4 sm:hidden">
           <HeaderCurrencySelect />
         </div>
       </header>
 
-      {/* ───── Navigation ───── */}
-      <NudgeTabNav value={tab} onChange={setTab} />
+      {/* ───── Command bar (desktop) + bottom tab bar (mobile) ───── */}
+      <NudgeTabNav
+        value={tab}
+        onChange={setTab}
+        desktopRight={
+          <>
+            <CommandBarCurrencySelect />
+            <span
+              aria-hidden
+              className="nudge-cmdbar-divider"
+              style={{ background: "var(--hairline-strong)" }}
+            />
+            {props.showSignOut ? <SignOutButton /> : null}
+            <ThemeToggle />
+          </>
+        }
+      />
 
       <div
         role="tabpanel"
-        className="min-h-[min(320px,50vh)] min-w-0 flex-1 sm:mt-1"
+        className="min-h-[min(320px,50vh)] min-w-0 flex-1"
       >
         {tab === "overview" ? <DashboardTab /> : null}
         {tab === "activity" ? <ActivityTab /> : null}
