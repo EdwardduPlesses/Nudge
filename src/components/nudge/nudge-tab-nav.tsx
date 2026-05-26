@@ -119,29 +119,42 @@ const TABS: TabSpec[] = [
   },
 ];
 
-export function NudgeTabNav(props: {
+/* ─────────────────────────────────────────────────────────────
+   NudgeTopBar — full-bleed sticky top app bar (desktop only)
+   Brand mark on the left, tab pill in the middle, actions right.
+   Hidden below the `sm` breakpoint (mobile uses NudgeMobileTabBar).
+   ───────────────────────────────────────────────────────────── */
+
+export function NudgeTopBar(props: {
   value: NudgeTabKey;
   onChange: (next: NudgeTabKey) => void;
-  desktopRight?: React.ReactNode;
+  actions?: React.ReactNode;
 }) {
   return (
-    <>
-      <DesktopTabNav
-        value={props.value}
-        onChange={props.onChange}
-        right={props.desktopRight}
-      />
-      <MobileTabNav value={props.value} onChange={props.onChange} />
-    </>
+    <header className="nudge-topbar" aria-label="Primary">
+      <div className="nudge-topbar__inner">
+        <a
+          href="/app"
+          className="nudge-topbar__brand"
+          aria-label="Nudge — home"
+        >
+          <span className="nudge-topbar__brand-mark" aria-hidden>
+            ✦
+          </span>
+          <span className="nudge-topbar__brand-name">Nudge</span>
+        </a>
+
+        <DesktopTabPill value={props.value} onChange={props.onChange} />
+
+        <div className="nudge-topbar__actions">{props.actions}</div>
+      </div>
+    </header>
   );
 }
 
-/* ─────────── Desktop: full-width command bar with sliding indicator ─────────── */
-
-function DesktopTabNav(props: {
+function DesktopTabPill(props: {
   value: NudgeTabKey;
   onChange: (next: NudgeTabKey) => void;
-  right?: React.ReactNode;
 }) {
   const listRef = useRef<HTMLDivElement | null>(null);
   const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -170,56 +183,54 @@ function DesktopTabNav(props: {
   }, [props.value]);
 
   return (
-    <div className="nudge-tabnav-desktop hidden sm:flex" aria-label="Sections">
-      <nav
-        ref={listRef}
-        className="nudge-tabnav-desktop__list"
-        role="tablist"
-      >
-        <span
-          aria-hidden
-          className="nudge-tabnav-desktop__indicator"
-          style={
-            indicator
-              ? {
-                  transform: `translateX(${indicator.x}px)`,
-                  width: indicator.w,
-                  opacity: 1,
-                }
-              : { opacity: 0 }
-          }
-        />
-        {TABS.map((t) => {
-          const active = props.value === t.key;
-          return (
-            <button
-              key={t.key}
-              ref={(el) => {
-                btnRefs.current[t.key] = el;
-              }}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              data-active={active ? "true" : undefined}
-              className="nudge-tabnav-desktop__item"
-              onClick={() => props.onChange(t.key)}
-            >
-              <t.icon className="nudge-tabnav-desktop__icon" />
-              <span className="nudge-tabnav-desktop__label">{t.label}</span>
-            </button>
-          );
-        })}
-      </nav>
-      {props.right ? (
-        <div className="nudge-tabnav-desktop__actions">{props.right}</div>
-      ) : null}
-    </div>
+    <nav
+      ref={listRef}
+      className="nudge-topbar__nav"
+      role="tablist"
+      aria-label="Sections"
+    >
+      <span
+        aria-hidden
+        className="nudge-topbar__indicator"
+        style={
+          indicator
+            ? {
+                transform: `translateX(${indicator.x}px)`,
+                width: indicator.w,
+                opacity: 1,
+              }
+            : { opacity: 0 }
+        }
+      />
+      {TABS.map((t) => {
+        const active = props.value === t.key;
+        return (
+          <button
+            key={t.key}
+            ref={(el) => {
+              btnRefs.current[t.key] = el;
+            }}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            data-active={active ? "true" : undefined}
+            className="nudge-topbar__tab"
+            onClick={() => props.onChange(t.key)}
+          >
+            <t.icon className="nudge-topbar__tab-icon" />
+            <span className="nudge-topbar__tab-label">{t.label}</span>
+          </button>
+        );
+      })}
+    </nav>
   );
 }
 
-/* ─────────── Mobile: bottom tab bar ─────────── */
+/* ─────────────────────────────────────────────────────────────
+   NudgeMobileTabBar — fixed bottom bar (mobile only)
+   ───────────────────────────────────────────────────────────── */
 
-function MobileTabNav(props: {
+export function NudgeMobileTabBar(props: {
   value: NudgeTabKey;
   onChange: (next: NudgeTabKey) => void;
 }) {
