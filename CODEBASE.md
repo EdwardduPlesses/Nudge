@@ -98,6 +98,7 @@ Defined in **`src/lib/budget/types.ts`**:
 | `NUDGE_STRICT_WHOP` | Set to `1` to disable dev preview user and stricter local gates |
 | `NUDGE_DEV_LANDING` | Set to `1` in dev to show `/` instead of redirecting to `/experiences/dev` |
 | `WHOP_OAUTH_REDIRECT_URI` | Full URL of `/api/auth/whop/callback`; must be registered in Whop app settings |
+| `WHOP_APP_CLIENT_SECRET` | OAuth client secret from the Whop app dashboard's OAuth tab (Confidential mode) |
 | `NUDGE_SESSION_SECRET` | HS256 key for session and OAuth-state cookies (32+ chars; 64+ recommended) |
 
 Copy **`.env.example`** into **`.env.local`** and fill in values.

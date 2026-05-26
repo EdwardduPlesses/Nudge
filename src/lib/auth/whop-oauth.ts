@@ -4,7 +4,9 @@ import { createHash, randomBytes } from "node:crypto";
  * Whop OAuth client. Verified against the official OAuth guide:
  * https://docs.whop.com/developer/guides/oauth
  *
- * Whop uses OAuth 2.1 + PKCE + OIDC. No client_secret; PKCE handles authn.
+ * Whop uses OAuth 2.1 + PKCE + OIDC. This app is configured as a Confidential
+ * client (see the OAuth tab in the Whop dashboard), so the token exchange
+ * sends both PKCE `code_verifier` AND `client_secret`.
  */
 
 const WHOP_AUTHORIZE_URL = "https://api.whop.com/oauth/authorize";
@@ -68,6 +70,7 @@ export async function exchangeWhopOAuthCode(opts: {
     code: opts.code,
     redirect_uri: opts.redirectUri,
     client_id: requireEnv("NEXT_PUBLIC_WHOP_APP_ID"),
+    client_secret: requireEnv("WHOP_APP_CLIENT_SECRET"),
     code_verifier: opts.codeVerifier,
   });
   const res = await fetch(WHOP_TOKEN_URL, {
