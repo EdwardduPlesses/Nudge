@@ -39,7 +39,7 @@ function HeaderCurrencySelect() {
   );
 }
 
-export function NudgeApp(props: { devMode: boolean }) {
+export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
   const [tab, setTab] = useState<TabKey>("overview");
   const today = format(new Date(), "EEEE, MMMM d");
 
@@ -57,7 +57,19 @@ export function NudgeApp(props: { devMode: boolean }) {
               Nudge
             </h1>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            {props.showSignOut ? (
+              <form action="/api/auth/logout" method="post">
+                <button
+                  type="submit"
+                  className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                >
+                  Sign out
+                </button>
+              </form>
+            ) : null}
+            <ThemeToggle />
+          </div>
         </div>
 
         <div
