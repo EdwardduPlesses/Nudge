@@ -1,26 +1,45 @@
 import { whopsdk } from "@/lib/whop-sdk";
 
 /**
- * Standalone access gate — does the user have any active Whop membership that
- * this app (Nudge) can see?
+ * Standalone access gate — is this user allowed to use Nudge outside the Whop iframe?
  *
- * We call `whopsdk.memberships.list` with the app's `WHOP_API_KEY`. Whop scopes
- * app API keys to memberships in products that include the calling app, so the
- * result should already be Nudge-relevant. If smoke-testing reveals unrelated
- * memberships passing the gate, tighten this by either filtering on
- * `product_ids` (if we maintain a list of Nudge products) or by calling
- * `experiences.list({ company_id })` per company the user is a member of.
+ * Passes if EITHER:
+ *   (a) the user holds at least one active Whop membership visible to this app, OR
+ *   (b) the user is an authorized team member (admin/owner) of a company that has
+ *       Nudge installed.
  *
- * DEVIATION FROM SPEC: the plan specified `experiences.list({ user_id })`, but
- * `ExperienceListParams` in @whop/sdk has no `user_id` filter — it requires
- * `company_id`. `memberships.list` is the closest equivalent that's user-scoped.
+ * The iframe's `users.checkAccess(experienceId, userId)` covers both cases
+ * implicitly; we have to OR them ourselves out here because there is no
+ * "experienceId" to scope against.
  */
 export async function userHasAnyNudgeMembership(userId: string): Promise<boolean> {
+  const [membership, teamMember] = await Promise.all([
+    hasActiveMembership(userId),
+    isAuthorizedTeamMember(userId),
+  ]);
+  return membership || teamMember;
+}
+
+async function hasActiveMembership(userId: string): Promise<boolean> {
   try {
-    const page = await whopsdk.memberships.list({ user_ids: [userId], statuses: ["active"], first: 1 });
+    const page = await whopsdk.memberships.list({
+      user_ids: [userId],
+      statuses: ["active"],
+      first: 1,
+    });
     return Array.isArray(page.data) && page.data.length > 0;
   } catch (err) {
-    console.error("[Nudge] standalone gate check failed", err);
+    console.error("[Nudge] standalone gate: memberships.list failed", err);
+    return false;
+  }
+}
+
+async function isAuthorizedTeamMember(userId: string): Promise<boolean> {
+  try {
+    const page = await whopsdk.authorizedUsers.list({ user_id: userId, first: 1 });
+    return Array.isArray(page.data) && page.data.length > 0;
+  } catch (err) {
+    console.error("[Nudge] standalone gate: authorizedUsers.list failed", err);
     return false;
   }
 }
