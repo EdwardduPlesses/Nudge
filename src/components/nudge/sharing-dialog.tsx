@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Callout, Dialog, SegmentedControl, Text, TextField } from "frosted-ui";
+import { NudgeListSkeleton } from "@/components/nudge/content-skeleton";
 import { nudgeBudgetFetchInit, useNudgeBudget } from "@/context/nudge-budget-context";
 
 // Matches the `/api/members` response (EnrichedMember from lib/budget/activity): camelCase.
@@ -287,9 +288,7 @@ export function SharingDialog(props: { open: boolean; onOpenChange: (open: boole
           ) : null}
 
           {loading ? (
-            <Text size="2" color="gray">
-              Loading…
-            </Text>
+            <NudgeListSkeleton rows={2} />
           ) : (
             <>
               {/* Members */}

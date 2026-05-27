@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { isSupabasePersistenceEnabled } from "@/lib/supabase/config";
 import { resolveMutationContext } from "../_shared/workbook-mutation";
+import { readJson, nonNegativeNumber } from "../_shared/validation";
 import { logActivity } from "@/lib/budget/activity";
 
 export const dynamic = "force-dynamic";
@@ -36,16 +37,18 @@ export async function GET() {
 export async function POST(req: Request) {
   const r = await ctx(); if (r.error) return r.error;
   const { userId, workbookId } = r.c;
-  const body = await req.json();
+  const parsed = await readJson(req);
+  if (parsed.error) return parsed.error;
+  const body = parsed.body;
   const id = crypto.randomUUID();
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.from("nudge_debts").insert({
     id,
     workbook_id: workbookId,
     name: String(body.name ?? "Debt"),
-    balance: Number(body.balance ?? 0),
-    apr: Number(body.apr ?? 0),
-    min_payment: Number(body.minPayment ?? 0),
+    balance: nonNegativeNumber(body.balance),
+    apr: nonNegativeNumber(body.apr),
+    min_payment: nonNegativeNumber(body.minPayment),
     created_by: userId,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -56,17 +59,20 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   const r = await ctx(); if (r.error) return r.error;
   const { workbookId, userId } = r.c;
-  const body = await req.json();
+  const parsed = await readJson(req);
+  if (parsed.error) return parsed.error;
+  const body = parsed.body;
   if (!body.id) return NextResponse.json({ error: "id required" }, { status: 400 });
+  const id = String(body.id);
   const patch: Record<string, unknown> = {};
   if (body.name !== undefined) patch.name = String(body.name);
-  if (body.balance !== undefined) patch.balance = Number(body.balance);
-  if (body.apr !== undefined) patch.apr = Number(body.apr);
-  if (body.minPayment !== undefined) patch.min_payment = Number(body.minPayment);
+  if (body.balance !== undefined) patch.balance = nonNegativeNumber(body.balance);
+  if (body.apr !== undefined) patch.apr = nonNegativeNumber(body.apr);
+  if (body.minPayment !== undefined) patch.min_payment = nonNegativeNumber(body.minPayment);
   const supabase = getSupabaseAdmin();
-  const { error } = await supabase.from("nudge_debts").update(patch).eq("id", body.id).eq("workbook_id", workbookId);
+  const { error } = await supabase.from("nudge_debts").update(patch).eq("id", id).eq("workbook_id", workbookId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  await logActivity(workbookId, userId, "updated", "debt", body.id, "updated a debt");
+  await logActivity(workbookId, userId, "updated", "debt", id, "updated a debt");
   return NextResponse.json({ ok: true });
 }
 

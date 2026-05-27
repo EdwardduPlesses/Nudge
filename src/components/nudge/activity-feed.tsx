@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { MemberBadge } from "@/components/nudge/member-badge";
+import { NudgeListSkeleton } from "@/components/nudge/content-skeleton";
 import { nudgeBudgetFetchInit, useNudgeBudget } from "@/context/nudge-budget-context";
 
 interface ActivityItem {
@@ -19,6 +20,9 @@ export function ActivityFeed({ filterUserId }: { filterUserId?: string }) {
   const { whopUserToken } = useNudgeBudget();
   const [items, setItems] = useState<ActivityItem[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+  // Bumped to re-run the load effect on a retry.
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,25 +33,59 @@ export function ActivityFeed({ filterUserId }: { filterUserId?: string }) {
       try {
         const res = await fetch(url, nudgeBudgetFetchInit(whopUserToken, { credentials: "include" }));
         if (!res.ok) {
-          if (!cancelled) setLoaded(true);
+          if (!cancelled) {
+            setError(true);
+            setLoaded(true);
+          }
           return;
         }
         const data = (await res.json()) as { items: ActivityItem[] };
         if (!cancelled) {
           setItems(data.items ?? []);
+          setError(false);
           setLoaded(true);
         }
       } catch (err) {
         console.error("[Nudge] activity feed load failed", err);
-        if (!cancelled) setLoaded(true);
+        if (!cancelled) {
+          setError(true);
+          setLoaded(true);
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [whopUserToken, filterUserId]);
+  }, [whopUserToken, filterUserId, reloadKey]);
 
-  if (loaded && items.length === 0) {
+  if (!loaded) {
+    return <NudgeListSkeleton rows={3} />;
+  }
+
+  // A failed load looked identical to "empty" before — surface it distinctly with a retry.
+  if (error) {
+    return (
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <span style={{ color: "var(--tone-overdue)", fontSize: "0.9rem", lineHeight: 1.55 }}>
+          Couldn&apos;t load activity.
+        </span>
+        <button
+          type="button"
+          className="underline underline-offset-2"
+          style={{ color: "var(--ink-soft)", fontSize: "0.9rem", lineHeight: 1.55 }}
+          onClick={() => {
+            setLoaded(false);
+            setError(false);
+            setReloadKey((k) => k + 1);
+          }}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
     return (
       <p style={{ color: "var(--ink-muted)", fontSize: "0.9rem", lineHeight: 1.55 }}>
         No activity yet.

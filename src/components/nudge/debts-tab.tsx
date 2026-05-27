@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Callout, Dialog, Progress, SegmentedControl, TextField } from "frosted-ui";
+import { NudgeListSkeleton } from "@/components/nudge/content-skeleton";
 import { useCurrency } from "@/context/currency-context";
 import { nudgeBudgetFetchInit, useNudgeBudget } from "@/context/nudge-budget-context";
 import {
@@ -528,7 +529,7 @@ export function DebtsTab() {
 
       {/* ───── List / empty / loading ───── */}
       {loading ? (
-        <p style={{ color: "var(--ink-muted)" }}>Loading…</p>
+        <NudgeListSkeleton rows={3} />
       ) : debts.length === 0 ? (
         <div
           className="atelier-card px-4 py-10 text-center sm:px-6"

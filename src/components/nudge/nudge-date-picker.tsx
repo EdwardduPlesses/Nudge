@@ -1,8 +1,11 @@
 "use client";
 
-import { CalendarDate, parseDate } from "@internationalized/date";
+import { CalendarDate, getLocalTimeZone, parseDate, today } from "@internationalized/date";
 import { Button, DatePicker, Text } from "frosted-ui";
 import type { ReactNode } from "react";
+
+// Bound the year segment so a typo/spin (e.g. "2094") can't be entered or stored.
+const MIN_DATE = new CalendarDate(2000, 1, 1);
 
 function isoToCalendarDate(iso: string): CalendarDate | null {
   const s = iso.trim();
@@ -46,6 +49,8 @@ export function NudgeDatePicker(props: NudgeDatePickerProps) {
           color="gold"
           size="3"
           value={cal}
+          minValue={MIN_DATE}
+          maxValue={today(getLocalTimeZone()).add({ years: 10 })}
           onChange={(v) => props.onChange(v ? v.toString() : "")}
         />
         {props.allowClear && props.value.trim() !== "" ? (

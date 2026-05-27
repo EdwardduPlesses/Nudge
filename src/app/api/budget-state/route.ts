@@ -1,27 +1,15 @@
 import { NextResponse } from "next/server";
 import { cookies, headers } from "next/headers";
 import { fetchBudgetStateForUser } from "@/lib/budget/supabase-persistence";
-import { getCurrentUser } from "@/lib/auth/current-user";
-import { userHasAnyNudgeMembership } from "@/lib/auth/standalone-gate";
+import { getVerifiedCurrentUser } from "@/lib/auth/current-user";
 import { isSupabasePersistenceEnabled } from "@/lib/supabase/config";
 
 export const dynamic = "force-dynamic";
 
-const GATE_REFRESH_SECONDS = 15 * 60;
-
 async function resolveBudgetUserId(): Promise<string | null> {
   const [hdrs, cks] = await Promise.all([headers(), cookies()]);
-  const u = await getCurrentUser(hdrs, cks);
-  if (!u) return null;
-
-  // For standalone sessions, re-check the gate if the cookie's gate timestamp is stale.
-  // Iframe and dev-preview sources are already authoritative via Whop's own checks
-  // (verifyUserToken / NUDGE_STRICT_WHOP=0 dev fallback).
-  if (u.source === "standalone-session") {
-    const stale = Math.floor(Date.now() / 1000) - u.gateCheckedAt > GATE_REFRESH_SECONDS;
-    if (stale && !(await userHasAnyNudgeMembership(u.userId))) return null;
-  }
-  return u.userId;
+  const u = await getVerifiedCurrentUser(hdrs, cks);
+  return u?.userId ?? null;
 }
 
 export async function GET(req: Request) {

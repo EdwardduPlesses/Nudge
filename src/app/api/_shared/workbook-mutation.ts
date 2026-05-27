@@ -1,5 +1,5 @@
 import { cookies, headers } from "next/headers";
-import { getCurrentUser } from "@/lib/auth/current-user";
+import { getVerifiedCurrentUser } from "@/lib/auth/current-user";
 import { ensureActiveWorkbook, userIsWorkbookMember } from "@/lib/budget/workbook-access";
 
 /** Resolve caller + their active workbook for a mutation, or return null (→ 401/403). */
@@ -7,7 +7,8 @@ export async function resolveMutationContext(): Promise<
   { userId: string; workbookId: string } | null
 > {
   const [hdrs, cks] = await Promise.all([headers(), cookies()]);
-  const u = await getCurrentUser(hdrs, cks);
+  // Re-verifies the Whop gate for stale standalone sessions so revoked members can't keep writing.
+  const u = await getVerifiedCurrentUser(hdrs, cks);
   if (!u) return null;
   const workbookId = await ensureActiveWorkbook(u.userId);
   return { userId: u.userId, workbookId };

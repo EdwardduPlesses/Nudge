@@ -3,6 +3,10 @@ import type { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension
 import { whopsdk } from "@/lib/whop-sdk";
 import { NUDGE_DEV_PREVIEW_USER_ID, devStrictWhop } from "@/lib/nudge-dev-preview";
 import { NUDGE_SESSION_COOKIE, decodeNudgeSession } from "@/lib/auth/session";
+import { userHasAnyNudgeMembership } from "@/lib/auth/standalone-gate";
+
+/** Re-check the Whop entitlement gate for standalone sessions older than this. */
+const GATE_REFRESH_SECONDS = 15 * 60;
 
 export type CurrentUser =
   | { userId: string; source: "whop-iframe" }
@@ -43,4 +47,26 @@ export async function getCurrentUser(
   }
 
   return null;
+}
+
+/**
+ * Like {@link getCurrentUser}, but for standalone sessions also re-verifies the
+ * Whop entitlement gate when the session's gate timestamp is stale. Returns null
+ * for a standalone user whose membership/purchase has since been revoked. Iframe
+ * and dev-preview sources are already authoritative and pass through unchanged.
+ *
+ * Use this for any authenticated read/write path (not just budget-state) so a
+ * revoked member cannot keep mutating data for the life of their session cookie.
+ */
+export async function getVerifiedCurrentUser(
+  headers: ReadonlyHeaders | Headers,
+  cookies: ReadonlyRequestCookies | { get: (n: string) => { value: string } | undefined },
+): Promise<CurrentUser> {
+  const u = await getCurrentUser(headers, cookies);
+  if (!u) return null;
+  if (u.source === "standalone-session") {
+    const stale = Math.floor(Date.now() / 1000) - u.gateCheckedAt > GATE_REFRESH_SECONDS;
+    if (stale && !(await userHasAnyNudgeMembership(u.userId))) return null;
+  }
+  return u;
 }

@@ -40,6 +40,9 @@ type NudgeBudgetContextValue = {
   periodAnchorDay: number;
   loadPeriods: () => Promise<void>;
   setPeriodAnchorDay: (day: number) => Promise<void>;
+  /** Set when an optimistic change was rolled back after a failed save; null when clear. */
+  syncError: string | null;
+  clearSyncError: () => void;
 };
 
 const Ctx = createContext<NudgeBudgetContextValue | null>(null);
@@ -89,14 +92,23 @@ export function NudgeBudgetProvider(props: {
   const [periodAnchorDay, setPeriodAnchorDayState] = useState<number>(
     props.remote.snapshot.periodAnchorDay,
   );
+  // Surfaced to the UI when an optimistic change had to be rolled back after a failed save.
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   // Read the freshest state inside callbacks without re-creating them (avoids stale closures
-  // around `period.id` / `editable`).
+  // around `period.id` / `editable` / the selected period).
   const stateRef = useRef(state);
+  const selectedPeriodIdRef = useRef(selectedPeriodId);
+  const currentPeriodIdRef = useRef(currentPeriodId);
   useEffect(() => {
     stateRef.current = state;
+    selectedPeriodIdRef.current = selectedPeriodId;
+    currentPeriodIdRef.current = currentPeriodId;
   });
 
+  // A failed network request should surface like a failed save (not an unhandled rejection),
+  // so the wrappers turn a thrown fetch into a non-ok Response that flows through `warnOnFail`.
+  const networkFailure = () => new Response(null, { status: 503 });
   const post = useCallback(
     (url: string, body: unknown) =>
       fetch(
@@ -107,7 +119,7 @@ export function NudgeBudgetProvider(props: {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         }),
-      ),
+      ).catch(networkFailure),
     [props.whopUserToken],
   );
   const patch = useCallback(
@@ -120,7 +132,7 @@ export function NudgeBudgetProvider(props: {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         }),
-      ),
+      ).catch(networkFailure),
     [props.whopUserToken],
   );
   const del = useCallback(
@@ -128,15 +140,44 @@ export function NudgeBudgetProvider(props: {
       fetch(
         url,
         nudgeBudgetFetchInit(props.whopUserToken, { method: "DELETE", credentials: "include" }),
-      ),
+      ).catch(networkFailure),
     [props.whopUserToken],
   );
+
+  // Re-fetch authoritative state for the period currently in view. Used to roll back an
+  // optimistic change the server rejected, so local state can't silently drift from the DB.
+  const resync = useCallback(async () => {
+    const pid = selectedPeriodIdRef.current;
+    const url = pid
+      ? `/api/budget-state?periodId=${encodeURIComponent(pid)}`
+      : "/api/budget-state";
+    try {
+      const res = await fetch(
+        url,
+        nudgeBudgetFetchInit(props.whopUserToken, { credentials: "include" }),
+      );
+      if (res.ok) {
+        const { state: next } = (await res.json()) as { state: BudgetState };
+        setState(next);
+      }
+    } catch (err) {
+      console.error("[Nudge] resync failed", err);
+    }
+  }, [props.whopUserToken]);
+
+  // On a failed save, roll the optimistic edit back to server truth and tell the user.
   const warnOnFail = useCallback(
     (label: string) => (r: Response) => {
-      if (!r.ok) console.error(`[Nudge] ${label} failed`, r.status);
+      if (!r.ok) {
+        console.error(`[Nudge] ${label} failed`, r.status);
+        setSyncError("That change couldn't be saved — restoring the latest data.");
+        void resync();
+      }
     },
-    [],
+    [resync],
   );
+
+  const clearSyncError = useCallback(() => setSyncError(null), []);
 
   const selectPeriod = useCallback(
     async (periodId: string | null) => {
@@ -171,6 +212,13 @@ export function NudgeBudgetProvider(props: {
           periodAnchorDay: number;
         };
         setPeriods(data.periods);
+        // Keep the default selection pinned to the current period. Only move it along if the
+        // user hasn't deliberately navigated to a past period (i.e. they were on "current").
+        const prevCurrent = currentPeriodIdRef.current;
+        const prevSelected = selectedPeriodIdRef.current;
+        if (prevSelected === null || prevSelected === prevCurrent) {
+          setSelectedPeriodId(data.currentPeriodId);
+        }
         setCurrentPeriodId(data.currentPeriodId);
         setPeriodAnchorDayState(data.periodAnchorDay);
       }
@@ -396,6 +444,8 @@ export function NudgeBudgetProvider(props: {
       periodAnchorDay,
       loadPeriods,
       setPeriodAnchorDay,
+      syncError,
+      clearSyncError,
     }),
     [
       state,
@@ -418,6 +468,8 @@ export function NudgeBudgetProvider(props: {
       periodAnchorDay,
       loadPeriods,
       setPeriodAnchorDay,
+      syncError,
+      clearSyncError,
     ],
   );
 

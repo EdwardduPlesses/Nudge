@@ -168,45 +168,32 @@ export async function acceptInvite(
   todayIso: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const supabase = getSupabaseAdmin();
+
+  // Resolve + guard up front for fast, clear errors. The RPC re-validates these
+  // same conditions under a row lock so the final decision is race-free.
   const invite = await loadInvite(by);
   if (!invite) return { ok: false, error: "Invite not found or already used." };
   if (invite.inviterUserId === joinerUserId) return { ok: false, error: "You can't accept your own invite." };
   if (invite.inviteeUserId && invite.inviteeUserId !== joinerUserId) {
     return { ok: false, error: "This invite was issued to a different account." };
   }
-
-  await supabase.from("nudge_profiles").upsert({ whop_user_id: joinerUserId }, { onConflict: "whop_user_id" });
-
-  if (mode === "adopt") {
-    if ((await workbookMemberCount(invite.workbookId)) >= MAX_MEMBERS) {
-      return { ok: false, error: "This budget already has two members." };
-    }
-    // Insert joiner into inviter's workbook FIRST (idempotent), then remove other memberships.
-    const { error: insErr } = await supabase
-      .from("nudge_workbook_members")
-      .upsert({ workbook_id: invite.workbookId, whop_user_id: joinerUserId, role: "member" }, { onConflict: "workbook_id,whop_user_id" });
-    if (insErr) return { ok: false, error: insErr.message };
-    await supabase.from("nudge_workbook_members").delete().eq("whop_user_id", joinerUserId).neq("workbook_id", invite.workbookId);
-  } else {
-    // fresh: new workbook, both members, both old memberships removed.
-    const { data: wb, error: wbErr } = await supabase
-      .from("nudge_workbooks")
-      .insert({ whop_user_id: invite.inviterUserId, period_anchor_day: 1 })
-      .select("id")
-      .single();
-    if (wbErr) return { ok: false, error: wbErr.message };
-    const newWorkbookId = wb.id as string;
-    await supabase.from("nudge_workbook_members").delete().eq("whop_user_id", invite.inviterUserId);
-    await supabase.from("nudge_workbook_members").delete().eq("whop_user_id", joinerUserId);
-    const { error: memErr } = await supabase.from("nudge_workbook_members").insert([
-      { workbook_id: newWorkbookId, whop_user_id: invite.inviterUserId, role: "owner" },
-      { workbook_id: newWorkbookId, whop_user_id: joinerUserId, role: "member" },
-    ]);
-    if (memErr) return { ok: false, error: memErr.message };
-    await ensureCurrentPeriod(newWorkbookId, 1, todayIso);
+  if (mode === "adopt" && (await workbookMemberCount(invite.workbookId)) >= MAX_MEMBERS) {
+    return { ok: false, error: "This budget already has two members." };
   }
 
-  await supabase.from("nudge_invites").update({ status: "accepted", invitee_user_id: joinerUserId }).eq("id", invite.id);
+  // Atomic membership rewrite (both modes) inside one Postgres transaction. On any
+  // failure the whole rewrite rolls back, so a user can never be left orphaned with
+  // zero memberships. Returns the workbook the joiner ends up in.
+  const { data: workbookId, error } = await supabase.rpc("nudge_accept_invite", {
+    p_invite_id: invite.id,
+    p_joiner_user_id: joinerUserId,
+    p_mode: mode,
+  });
+  if (error) return { ok: false, error: error.message };
+
+  // Period creation is idempotent + non-destructive, so it runs AFTER the atomic
+  // swap (and only for fresh, which mints a brand-new empty workbook).
+  if (mode === "fresh" && workbookId) await ensureCurrentPeriod(workbookId as string, 1, todayIso);
   return { ok: true };
 }
 

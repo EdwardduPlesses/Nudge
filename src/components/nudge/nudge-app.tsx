@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { format } from "date-fns";
+import { useNudgeBudget } from "@/context/nudge-budget-context";
 import { ActivityTab } from "@/components/nudge/activity-tab";
 import { QuickAddExpenseButton } from "@/components/nudge/quick-add-expense-button";
 import { BudgetsTab } from "@/components/nudge/budgets-tab";
@@ -21,6 +22,42 @@ import {
 import { PeriodSelector } from "@/components/nudge/period-selector";
 import { SettingsTab } from "@/components/nudge/settings-tab";
 import { RecurringTab } from "@/components/nudge/recurring-tab";
+
+/** Transient toast shown when an optimistic edit was rolled back after a failed save. */
+function SyncErrorToast() {
+  const { syncError, clearSyncError } = useNudgeBudget();
+
+  useEffect(() => {
+    if (!syncError) return;
+    const t = setTimeout(clearSyncError, 5000);
+    return () => clearTimeout(t);
+  }, [syncError, clearSyncError]);
+
+  if (!syncError) return null;
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4"
+    >
+      <div className="atelier-card-elevated flex max-w-md items-center gap-3 rounded-full py-2.5 pl-4 pr-2.5 text-sm shadow-lg">
+        <span aria-hidden style={{ color: "var(--gold)" }}>
+          ⚠
+        </span>
+        <span style={{ color: "var(--ink)" }}>{syncError}</span>
+        <button
+          type="button"
+          onClick={clearSyncError}
+          aria-label="Dismiss"
+          className="shrink-0 rounded-full px-2 py-1 text-gray-500 hover:text-gray-900 dark:hover:text-white"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
   const [activeTop, setActiveTop] = useState<NudgeTopKey | "settings">("overview");
@@ -209,6 +246,7 @@ export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
       />
 
       <QuickAddExpenseButton variant="fab" />
+      <SyncErrorToast />
     </>
   );
 }

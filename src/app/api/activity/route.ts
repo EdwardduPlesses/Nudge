@@ -11,7 +11,7 @@ export async function GET(req: Request) {
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const url = new URL(req.url);
   const actor = url.searchParams.get("actor");
-  const limit = Number(url.searchParams.get("limit") ?? 50);
+  const limit = Math.max(1, Math.min(Number(url.searchParams.get("limit")) || 50, 200));
   const items = await listActivity(ctx.workbookId, { actorUserId: actor, limit });
   return NextResponse.json({ items });
 }

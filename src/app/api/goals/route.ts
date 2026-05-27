@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { isSupabasePersistenceEnabled } from "@/lib/supabase/config";
 import { resolveMutationContext } from "../_shared/workbook-mutation";
+import { readJson, nonNegativeNumber } from "../_shared/validation";
 import { logActivity } from "@/lib/budget/activity";
 
 export const dynamic = "force-dynamic";
@@ -16,13 +17,15 @@ async function ctx() {
 export async function POST(req: Request) {
   const r = await ctx(); if (r.error) return r.error;
   const { userId, workbookId } = r.c;
-  const body = await req.json();
-  const id = body.id ?? crypto.randomUUID();
+  const parsed = await readJson(req);
+  if (parsed.error) return parsed.error;
+  const body = parsed.body;
+  const id = (body.id as string | undefined) ?? crypto.randomUUID();
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.from("nudge_goals").insert({
     id, workbook_id: workbookId, name: String(body.name ?? "Goal"),
-    target_amount: Math.max(0, Number(body.targetAmount ?? 0)),
-    saved_amount: Math.max(0, Number(body.savedAmount ?? 0)),
+    target_amount: nonNegativeNumber(body.targetAmount),
+    saved_amount: nonNegativeNumber(body.savedAmount),
     deadline: body.deadline ?? null, created_by: userId,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -33,16 +36,20 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   const r = await ctx(); if (r.error) return r.error;
   const { workbookId, userId } = r.c;
-  const body = await req.json();
+  const parsed = await readJson(req);
+  if (parsed.error) return parsed.error;
+  const body = parsed.body;
   if (!body.id) return NextResponse.json({ error: "id required" }, { status: 400 });
+  const id = String(body.id);
   const patch: Record<string, unknown> = {};
   if (body.name !== undefined) patch.name = String(body.name);
-  if (body.targetAmount !== undefined) patch.target_amount = Math.max(0, Number(body.targetAmount));
+  if (body.targetAmount !== undefined) patch.target_amount = nonNegativeNumber(body.targetAmount);
+  if (body.savedAmount !== undefined) patch.saved_amount = nonNegativeNumber(body.savedAmount);
   if (body.deadline !== undefined) patch.deadline = body.deadline;
   const supabase = getSupabaseAdmin();
-  const { error } = await supabase.from("nudge_goals").update(patch).eq("id", body.id).eq("workbook_id", workbookId);
+  const { error } = await supabase.from("nudge_goals").update(patch).eq("id", id).eq("workbook_id", workbookId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  await logActivity(workbookId, userId, "updated", "goal", body.id, "updated a goal");
+  await logActivity(workbookId, userId, "updated", "goal", id, "updated a goal");
   return NextResponse.json({ ok: true });
 }
 

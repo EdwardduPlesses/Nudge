@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge, Button, Callout, Select, Switch, Text, TextField } from "frosted-ui";
+import { NudgeListSkeleton } from "@/components/nudge/content-skeleton";
 import { useCurrency } from "@/context/currency-context";
 import { nudgeBudgetFetchInit, useNudgeBudget } from "@/context/nudge-budget-context";
 
@@ -277,9 +278,7 @@ export function RecurringTab() {
         ) : null}
 
         {loading ? (
-          <Text size="2" color="gray">
-            Loading…
-          </Text>
+          <NudgeListSkeleton rows={3} />
         ) : (
           <>
             {/* Existing items */}

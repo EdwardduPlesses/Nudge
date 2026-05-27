@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isSupabasePersistenceEnabled } from "@/lib/supabase/config";
 import { resolveMutationContext } from "../_shared/workbook-mutation";
+import { readJson } from "../_shared/validation";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { clampAnchorDay } from "@/lib/budget/period-math";
 import { crossRate, decimalsFor, isDisplayCurrency } from "@/lib/currency-config";
@@ -13,7 +14,9 @@ export async function PATCH(req: Request) {
   if (!isSupabasePersistenceEnabled()) return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
   const ctx = await resolveMutationContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const body = await req.json();
+  const parsed = await readJson(req);
+  if (parsed.error) return parsed.error;
+  const body = parsed.body;
   const supabase = getSupabaseAdmin();
 
   if (body.periodAnchorDay !== undefined) {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { isSupabasePersistenceEnabled } from "@/lib/supabase/config";
 import { resolveMutationContext } from "../_shared/workbook-mutation";
+import { readJson } from "../_shared/validation";
 import { logActivity } from "@/lib/budget/activity";
 
 export const dynamic = "force-dynamic";
@@ -16,8 +17,10 @@ async function ctx() {
 export async function POST(req: Request) {
   const r = await ctx(); if (r.error) return r.error;
   const { userId, workbookId } = r.c;
-  const body = await req.json();
-  const id = body.id ?? crypto.randomUUID();
+  const parsed = await readJson(req);
+  if (parsed.error) return parsed.error;
+  const body = parsed.body;
+  const id = (body.id as string | undefined) ?? crypto.randomUUID();
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.from("nudge_categories").insert({
     id, workbook_id: workbookId, name: String(body.name ?? "Untitled"),
@@ -31,15 +34,18 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   const r = await ctx(); if (r.error) return r.error;
   const { workbookId, userId } = r.c;
-  const body = await req.json();
+  const parsed = await readJson(req);
+  if (parsed.error) return parsed.error;
+  const body = parsed.body;
   if (!body.id) return NextResponse.json({ error: "id required" }, { status: 400 });
+  const id = String(body.id);
   const patch: Record<string, unknown> = {};
   if (body.name !== undefined) patch.name = String(body.name);
   if (body.color !== undefined) patch.color = String(body.color);
   const supabase = getSupabaseAdmin();
-  const { error } = await supabase.from("nudge_categories").update(patch).eq("id", body.id).eq("workbook_id", workbookId);
+  const { error } = await supabase.from("nudge_categories").update(patch).eq("id", id).eq("workbook_id", workbookId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  await logActivity(workbookId, userId, "updated", "category", body.id, "renamed a category");
+  await logActivity(workbookId, userId, "updated", "category", id, "renamed a category");
   return NextResponse.json({ ok: true });
 }
 
