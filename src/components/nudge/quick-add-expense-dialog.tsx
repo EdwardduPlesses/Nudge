@@ -83,6 +83,7 @@ export function QuickAddExpenseDialog(props: { trigger: React.ReactNode }) {
       type: "expense",
       categoryId: cat,
       goalId: null,
+      debtId: null,
       note: note.trim(),
     });
     reset();

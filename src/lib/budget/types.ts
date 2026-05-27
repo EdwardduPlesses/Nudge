@@ -35,6 +35,8 @@ export interface Transaction {
   categoryId: string | null;
   /** When set: expense increases goal balance (transfer to savings); income decreases it (withdrawal). */
   goalId: string | null;
+  /** When set: an expense linked to a debt counts as a payment toward that debt's balance. */
+  debtId: string | null;
   note: string;
   /** Whop user id of who created it; null for legacy/pre-attribution rows. */
   createdBy: string | null;

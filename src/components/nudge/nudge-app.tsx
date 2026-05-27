@@ -7,6 +7,7 @@ import { ActivityTab } from "@/components/nudge/activity-tab";
 import { QuickAddExpenseButton } from "@/components/nudge/quick-add-expense-button";
 import { BudgetsTab } from "@/components/nudge/budgets-tab";
 import { DashboardTab } from "@/components/nudge/dashboard-tab";
+import { DebtsTab } from "@/components/nudge/debts-tab";
 import { GoalsTab } from "@/components/nudge/goals-tab";
 import { InsightsTab } from "@/components/nudge/insights-tab";
 import {
@@ -247,6 +248,7 @@ export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
           {tab === "insights" ? <InsightsTab /> : null}
           {tab === "budgets" ? <BudgetsTab /> : null}
           {tab === "goals" ? <GoalsTab /> : null}
+          {tab === "debts" ? <DebtsTab /> : null}
         </div>
       </div>
 

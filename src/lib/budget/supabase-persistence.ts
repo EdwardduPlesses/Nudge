@@ -84,6 +84,7 @@ export async function fetchBudgetStateForUser(
     type: r.type === "income" ? "income" : "expense",
     categoryId: (r.category_id as string) ?? null,
     goalId: (r.goal_id as string) ?? null,
+    debtId: (r.debt_id as string) ?? null,
     note: (r.note as string) ?? "",
     createdBy: (r.created_by as string) ?? null,
     periodId: (r.period_id as string) ?? null,
