@@ -4,12 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Callout, Dialog, SegmentedControl, Text, TextField } from "frosted-ui";
 import { nudgeBudgetFetchInit, useNudgeBudget } from "@/context/nudge-budget-context";
 
+// Matches the `/api/members` response (EnrichedMember from lib/budget/activity): camelCase.
 type Member = {
-  whop_user_id: string;
+  whopUserId: string;
   role: string;
-  display_name: string | null;
+  displayName: string | null;
   color: string | null;
-  joined_at: string | null;
 };
 
 type InviteRow = {
@@ -24,7 +24,8 @@ type InviteRow = {
 
 type AcceptMode = "adopt" | "fresh";
 
-function shortId(id: string): string {
+function shortId(id: string | null | undefined): string {
+  if (!id) return "Someone";
   if (id.length <= 12) return id;
   return `${id.slice(0, 6)}…${id.slice(-4)}`;
 }
@@ -56,12 +57,12 @@ function MembersList(props: { members: Member[]; currentUserId: string }) {
   return (
     <div className="flex flex-col gap-2">
       {props.members.map((m) => {
-        const label = m.display_name?.trim() || shortId(m.whop_user_id);
-        const isYou = m.whop_user_id === props.currentUserId;
+        const label = m.displayName?.trim() || shortId(m.whopUserId);
+        const isYou = m.whopUserId === props.currentUserId;
         const isOwner = m.role === "owner";
         return (
           <div
-            key={m.whop_user_id}
+            key={m.whopUserId}
             className="flex items-center justify-between gap-4 rounded-xl border border-gray-600/15 bg-gray-900/3 px-3 py-2.5 dark:bg-white/4"
           >
             <div className="flex min-w-0 items-center gap-2.5">
