@@ -2,6 +2,7 @@ import type { BudgetState, Category, Goal, Member, MemberIncome, Transaction } f
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { ensureActiveWorkbook } from "./workbook-access";
 import { ensureCurrentPeriod, listPeriods, type PeriodRow } from "./period-repo";
+import { ensureMemberProfiles } from "./activity";
 
 function num(v: unknown, fallback = 0): number {
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -14,22 +15,20 @@ function num(v: unknown, fallback = 0): number {
 
 async function loadWorkbookMeta(workbookId: string): Promise<{ anchorDay: number; members: Member[] }> {
   const supabase = getSupabaseAdmin();
-  const [{ data: wb, error: wbErr }, { data: mem, error: memErr }] = await Promise.all([
-    supabase.from("nudge_workbooks").select("period_anchor_day").eq("id", workbookId).single(),
-    supabase
-      .from("nudge_workbook_members")
-      .select("whop_user_id, role, display_name, color")
-      .eq("workbook_id", workbookId),
-  ]);
+  const { data: wb, error: wbErr } = await supabase
+    .from("nudge_workbooks")
+    .select("period_anchor_day")
+    .eq("id", workbookId)
+    .single();
   if (wbErr) throw wbErr;
-  if (memErr) throw memErr;
+  const enriched = await ensureMemberProfiles(workbookId);
   return {
     anchorDay: num(wb.period_anchor_day, 1),
-    members: (mem ?? []).map((r) => ({
-      whopUserId: r.whop_user_id as string,
-      role: (r.role as "owner" | "member") ?? "member",
-      displayName: (r.display_name as string) ?? null,
-      color: (r.color as string) ?? null,
+    members: enriched.map((m) => ({
+      whopUserId: m.whopUserId,
+      role: m.role as "owner" | "member",
+      displayName: m.displayName,
+      color: m.color,
     })),
   };
 }

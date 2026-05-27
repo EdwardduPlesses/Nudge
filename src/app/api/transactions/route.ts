@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { isSupabasePersistenceEnabled } from "@/lib/supabase/config";
 import { resolveMutationContext } from "../_shared/workbook-mutation";
 import { ensureCurrentPeriod } from "@/lib/budget/period-repo";
+import { logActivity } from "@/lib/budget/activity";
 
 export const dynamic = "force-dynamic";
 
@@ -39,13 +40,14 @@ export async function POST(req: Request) {
     created_by: userId,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  await logActivity(workbookId, userId, "created", "transaction", id, `added a ${body.type === "income" ? "income" : "expense"} of ${Number(body.amount ?? 0)}`);
   return NextResponse.json({ id });
 }
 
 export async function PATCH(req: Request) {
   const r = await ctxOr401();
   if (r.error) return r.error;
-  const { workbookId } = r.ctx;
+  const { workbookId, userId } = r.ctx;
   const body = await req.json();
   if (!body.id) return NextResponse.json({ error: "id required" }, { status: 400 });
   const supabase = getSupabaseAdmin();
@@ -63,13 +65,14 @@ export async function PATCH(req: Request) {
     .eq("id", body.id)
     .eq("workbook_id", workbookId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  await logActivity(workbookId, userId, "updated", "transaction", body.id, "edited a transaction");
   return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(req: Request) {
   const r = await ctxOr401();
   if (r.error) return r.error;
-  const { workbookId } = r.ctx;
+  const { workbookId, userId } = r.ctx;
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
   const supabase = getSupabaseAdmin();
@@ -79,5 +82,6 @@ export async function DELETE(req: Request) {
     .eq("id", id)
     .eq("workbook_id", workbookId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  await logActivity(workbookId, userId, "deleted", "transaction", id, "removed a transaction");
   return NextResponse.json({ ok: true });
 }

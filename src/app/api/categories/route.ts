@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { isSupabasePersistenceEnabled } from "@/lib/supabase/config";
 import { resolveMutationContext } from "../_shared/workbook-mutation";
+import { logActivity } from "@/lib/budget/activity";
 
 export const dynamic = "force-dynamic";
 
@@ -23,12 +24,13 @@ export async function POST(req: Request) {
     color: String(body.color ?? "#94a3b8"), created_by: userId,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  await logActivity(workbookId, userId, "created", "category", id, `added category ${String(body.name ?? "Untitled")}`);
   return NextResponse.json({ id });
 }
 
 export async function PATCH(req: Request) {
   const r = await ctx(); if (r.error) return r.error;
-  const { workbookId } = r.c;
+  const { workbookId, userId } = r.c;
   const body = await req.json();
   if (!body.id) return NextResponse.json({ error: "id required" }, { status: 400 });
   const patch: Record<string, unknown> = {};
@@ -37,16 +39,18 @@ export async function PATCH(req: Request) {
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.from("nudge_categories").update(patch).eq("id", body.id).eq("workbook_id", workbookId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  await logActivity(workbookId, userId, "updated", "category", body.id, "renamed a category");
   return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(req: Request) {
   const r = await ctx(); if (r.error) return r.error;
-  const { workbookId } = r.c;
+  const { workbookId, userId } = r.c;
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.from("nudge_categories").delete().eq("id", id).eq("workbook_id", workbookId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  await logActivity(workbookId, userId, "deleted", "category", id, "removed a category");
   return NextResponse.json({ ok: true });
 }
