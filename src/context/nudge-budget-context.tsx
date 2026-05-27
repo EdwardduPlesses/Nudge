@@ -10,7 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
-import type { BudgetState, Goal, Transaction } from "@/lib/budget/types";
+import type { BudgetState, Goal, Period, Transaction } from "@/lib/budget/types";
 
 type NudgeBudgetContextValue = {
   state: BudgetState;
@@ -33,6 +33,13 @@ type NudgeBudgetContextValue = {
     patch: Partial<Pick<Goal, "name" | "targetAmount" | "deadline">>,
   ) => void;
   removeGoal: (id: string) => void;
+  // B2 — periods list, selection, and anchor-day control
+  periods: Period[];
+  selectedPeriodId: string | null;
+  currentPeriodId: string | null;
+  periodAnchorDay: number;
+  loadPeriods: () => Promise<void>;
+  setPeriodAnchorDay: (day: number) => Promise<void>;
 };
 
 const Ctx = createContext<NudgeBudgetContextValue | null>(null);
@@ -70,6 +77,18 @@ export function NudgeBudgetProvider(props: {
   children: ReactNode;
 }) {
   const [state, setState] = useState<BudgetState>(props.remote.snapshot);
+
+  // B2 — periods list, selection, and anchor-day
+  const [periods, setPeriods] = useState<Period[]>([]);
+  const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(
+    props.remote.snapshot.period.id,
+  );
+  const [currentPeriodId, setCurrentPeriodId] = useState<string | null>(
+    props.remote.snapshot.period.id,
+  );
+  const [periodAnchorDay, setPeriodAnchorDayState] = useState<number>(
+    props.remote.snapshot.periodAnchorDay,
+  );
 
   // Read the freshest state inside callbacks without re-creating them (avoids stale closures
   // around `period.id` / `editable`).
@@ -131,10 +150,55 @@ export function NudgeBudgetProvider(props: {
       if (res.ok) {
         const { state: next } = (await res.json()) as { state: BudgetState };
         setState(next);
+        // B2 — keep selectedPeriodId in sync with the resolved period
+        setSelectedPeriodId(next.period.id);
       }
     },
     [props.whopUserToken],
   );
+
+  // B2 — load periods list from /api/periods
+  const loadPeriods = useCallback(async () => {
+    try {
+      const res = await fetch(
+        "/api/periods",
+        nudgeBudgetFetchInit(props.whopUserToken, { credentials: "include" }),
+      );
+      if (res.ok) {
+        const data = (await res.json()) as {
+          periods: Period[];
+          currentPeriodId: string;
+          periodAnchorDay: number;
+        };
+        setPeriods(data.periods);
+        setCurrentPeriodId(data.currentPeriodId);
+        setPeriodAnchorDayState(data.periodAnchorDay);
+      }
+    } catch (err) {
+      console.error("[Nudge] loadPeriods failed", err);
+    }
+  }, [props.whopUserToken]);
+
+  // B2 — update the budget-cycle anchor day then reload
+  const setPeriodAnchorDay = useCallback(
+    async (day: number) => {
+      const res = await patch("/api/workbook", { periodAnchorDay: day });
+      if (res.ok) {
+        const data = (await res.json()) as { ok: boolean; periodAnchorDay: number };
+        setPeriodAnchorDayState(data.periodAnchorDay);
+        await loadPeriods();
+        await selectPeriod(null);
+      }
+    },
+    [patch, loadPeriods, selectPeriod],
+  );
+
+  // B2 — populate periods list on mount
+  useEffect(() => {
+    // setState happens inside the async loadPeriods (not synchronously in the effect body)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadPeriods();
+  }, [loadPeriods]);
 
   const setMemberIncome = useCallback(
     (whopUserId: string, amount: number) => {
@@ -325,6 +389,13 @@ export function NudgeBudgetProvider(props: {
       addGoal,
       updateGoal,
       removeGoal,
+      // B2 — periods list, selection, and anchor-day
+      periods,
+      selectedPeriodId,
+      currentPeriodId,
+      periodAnchorDay,
+      loadPeriods,
+      setPeriodAnchorDay,
     }),
     [
       state,
@@ -341,6 +412,12 @@ export function NudgeBudgetProvider(props: {
       addGoal,
       updateGoal,
       removeGoal,
+      periods,
+      selectedPeriodId,
+      currentPeriodId,
+      periodAnchorDay,
+      loadPeriods,
+      setPeriodAnchorDay,
     ],
   );
 
