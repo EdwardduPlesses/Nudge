@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Progress, TextField } from "frosted-ui";
+import { Progress, Select, TextField } from "frosted-ui";
 import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
 import {
@@ -10,7 +10,7 @@ import {
   transactionsThisMonth,
 } from "@/lib/budget/selectors";
 
-function CapInput(props: { categoryId: string; budgetLimitUsd: number }) {
+function CapInput(props: { categoryId: string; budgetLimitUsd: number; disabled?: boolean }) {
   const c = useCurrency();
   const { updateCategoryBudget } = useNudgeBudget();
   const [local, setLocal] = useState("");
@@ -27,7 +27,7 @@ function CapInput(props: { categoryId: string; budgetLimitUsd: number }) {
         min={0}
         step={c.currency === "JPY" ? 1 : "any"}
         autoComplete="off"
-        disabled={c.currency !== "USD" && c.rateLoading}
+        disabled={props.disabled || (c.currency !== "USD" && c.rateLoading)}
         value={local}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocal(e.target.value)}
         onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
@@ -48,7 +48,16 @@ function CapInput(props: { categoryId: string; budgetLimitUsd: number }) {
 export function BudgetsTab() {
   const c = useCurrency();
   const fmt = c.formatFromUsd;
-  const { state, renameCategory, addCategory, setMemberIncome, currentUserId } = useNudgeBudget();
+  const {
+    state,
+    renameCategory,
+    addCategory,
+    setMemberIncome,
+    currentUserId,
+    periodAnchorDay,
+    setPeriodAnchorDay,
+  } = useNudgeBudget();
+  const readOnly = !state.editable;
   const [newName, setNewName] = useState("");
   const [newCap, setNewCap] = useState("200");
   const [incomeDraft, setIncomeDraft] = useState("");
@@ -93,6 +102,19 @@ export function BudgetsTab() {
         </p>
       </header>
 
+      {readOnly ? (
+        <p
+          className="italic"
+          style={{
+            color: "var(--ink-muted)",
+            fontSize: "0.86rem",
+            fontFamily: "var(--font-fraunces), serif",
+          }}
+        >
+          Viewing a past period — editing is disabled.
+        </p>
+      ) : null}
+
       {/* ───── Income plan card ───── */}
       <section className="atelier-card-elevated" style={{ padding: "1.4rem 1.5rem" }}>
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
@@ -120,7 +142,7 @@ export function BudgetsTab() {
                 min={0}
                 step={c.currency === "JPY" ? 1 : "any"}
                 autoComplete="off"
-                disabled={c.currency !== "USD" && c.rateLoading}
+                disabled={readOnly || (c.currency !== "USD" && c.rateLoading)}
                 value={incomeDraft}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIncomeDraft(e.target.value)}
                 onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
@@ -156,6 +178,37 @@ export function BudgetsTab() {
           </div>
           <Progress value={budgetUsedRatio * 100} color="gold" />
         </div>
+
+        <div
+          className="mt-6 flex flex-col gap-2 pt-5 sm:max-w-xs"
+          style={{ borderTop: "1px solid var(--hairline)" }}
+        >
+          <span className="eyebrow">Budget cycle starts on</span>
+          <Select.Root
+            value={String(periodAnchorDay)}
+            disabled={readOnly}
+            onValueChange={(v) => {
+              void setPeriodAnchorDay(Number(v));
+            }}
+          >
+            <Select.Trigger
+              placeholder="Start day"
+              aria-label="Budget cycle start day"
+              className="min-h-10 w-full"
+            />
+            <Select.Content>
+              {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
+                <Select.Item key={day} value={String(day)}>
+                  {`Day ${day}`}
+                </Select.Item>
+              ))}
+              <Select.Item value="31">Last day of month</Select.Item>
+            </Select.Content>
+          </Select.Root>
+          <p style={{ color: "var(--ink-muted)", fontSize: "0.8rem", lineHeight: 1.5 }}>
+            Defines when each monthly budget period begins.
+          </p>
+        </div>
       </section>
 
       <div className="atelier-rule" role="presentation">
@@ -189,6 +242,7 @@ export function BudgetsTab() {
                       autoComplete="off"
                       placeholder="Name"
                       defaultValue={cat.name}
+                      disabled={readOnly}
                       onBlur={(e: React.FocusEvent<HTMLInputElement>) =>
                         renameCategory(cat.id, e.target.value)
                       }
@@ -216,7 +270,7 @@ export function BudgetsTab() {
                   <span className="eyebrow md:mt-0" style={{ paddingTop: "0.75rem" }}>
                     Monthly cap {c.amountApproxLabel}
                   </span>
-                  <CapInput categoryId={cat.id} budgetLimitUsd={cat.budgetLimit} />
+                  <CapInput categoryId={cat.id} budgetLimitUsd={cat.budgetLimit} disabled={readOnly} />
                 </div>
               </div>
             </article>
@@ -254,6 +308,7 @@ export function BudgetsTab() {
                 <TextField.Input
                   placeholder="Subscriptions"
                   autoComplete="off"
+                  disabled={readOnly}
                   value={newName}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewName(e.target.value)}
                 />
@@ -268,7 +323,7 @@ export function BudgetsTab() {
                   min={0}
                   step={c.currency === "JPY" ? 1 : "any"}
                   autoComplete="off"
-                  disabled={c.currency !== "USD" && c.rateLoading}
+                  disabled={readOnly || (c.currency !== "USD" && c.rateLoading)}
                   value={newCap}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCap(e.target.value)}
                 />
@@ -277,7 +332,8 @@ export function BudgetsTab() {
           </div>
           <button
             type="button"
-            className="atelier-btn-gold w-full sm:w-auto sm:self-start"
+            disabled={readOnly}
+            className="atelier-btn-gold w-full sm:w-auto sm:self-start disabled:cursor-not-allowed disabled:opacity-50"
             onClick={() => {
               const n = Number.parseFloat(newCap);
               const capUsd = Number.isFinite(n) ? c.displayAmountAsUsd(n) : 0;
