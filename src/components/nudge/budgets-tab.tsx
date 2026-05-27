@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Progress, Select, TextField } from "frosted-ui";
+import { Button, Progress, Select, TextField } from "frosted-ui";
+import { RecurringDialog } from "@/components/nudge/recurring-dialog";
 import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
 import {
@@ -18,6 +19,9 @@ function CapInput(props: { categoryId: string; budgetLimitUsd: number; disabled?
   const [local, setLocal] = useState("");
 
   useEffect(() => {
+    // Plain string mirror of the stored cap for the editable draft; not a cascading
+    // derivation, so scope-disable the set-state-in-effect rule here (matches MyIncomeInput).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocal(String(c.usdAsDisplayAmount(props.budgetLimitUsd)));
   }, [props.budgetLimitUsd, c.currency, c.usdAsDisplayAmount]);
 
@@ -101,6 +105,7 @@ export function BudgetsTab() {
   const [newName, setNewName] = useState("");
   const [newCap, setNewCap] = useState("200");
   const [incomeDraft, setIncomeDraft] = useState("");
+  const [recurringOpen, setRecurringOpen] = useState(false);
 
   const myIncome = useMemo(
     () => state.memberIncomes.find((i) => i.whopUserId === currentUserId)?.plannedAmount ?? 0,
@@ -334,9 +339,20 @@ export function BudgetsTab() {
             </span>
             Categories
           </span>
-          <span className="eyebrow tabular" style={{ color: "var(--ink-faint)" }}>
-            {String(state.categories.length).padStart(2, "0")} entries
-          </span>
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="soft"
+              color="gray"
+              size="2"
+              onClick={() => setRecurringOpen(true)}
+            >
+              Recurring items
+            </Button>
+            <span className="eyebrow tabular" style={{ color: "var(--ink-faint)" }}>
+              {String(state.categories.length).padStart(2, "0")} entries
+            </span>
+          </div>
         </div>
         {state.categories.map((cat) => {
           const spent = categorySpendThisMonth(cat.id, state.transactions, new Date());
@@ -458,6 +474,8 @@ export function BudgetsTab() {
           </button>
         </div>
       </section>
+
+      <RecurringDialog open={recurringOpen} onOpenChange={setRecurringOpen} />
     </div>
   );
 }
