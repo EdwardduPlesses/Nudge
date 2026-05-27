@@ -5,6 +5,7 @@ import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
 import { computeMonthlyRemaining } from "@/lib/budget/monthly-remaining";
 import { computeMonthlySpendingVelocity } from "@/lib/budget/velocity";
+import { safeToSpendToday } from "@/lib/budget/selectors";
 
 function SupportStat(props: { label: string; value: string }) {
   return (
@@ -29,6 +30,7 @@ export function OverviewHero() {
     () => computeMonthlySpendingVelocity(state.transactions, state.categories),
     [state.transactions, state.categories],
   );
+  const safe = useMemo(() => safeToSpendToday(state, new Date()), [state]);
 
   const dataTone: "overdue" | "warm" | "success" | undefined = snap.needsIncomePlan
     ? "warm"
@@ -66,12 +68,7 @@ export function OverviewHero() {
     return null;
   }, [formatFromUsd, v.hasBudget, v.hasExpenseData, v.insight, state.categories.length]);
 
-  const showSafeToSpend =
-    v.hasBudget &&
-    v.hasExpenseData &&
-    v.safeDailyUsd != null &&
-    Number.isFinite(v.safeDailyUsd) &&
-    v.safeDailyUsd > 0;
+  const showSafeToSpend = safe != null && safe.perDayUsd > 0;
 
   // Hero numeral color: keep gold sacred for affirmation only
   const numeralColor = snap.isOverBudget
@@ -169,10 +166,10 @@ export function OverviewHero() {
                 letterSpacing: "-0.015em",
               }}
             >
-              {formatFromUsd(v.safeDailyUsd!)}
+              {formatFromUsd(safe!.perDayUsd)}
             </p>
             <p className="mt-2" style={{ color: "var(--ink-muted)", fontSize: "0.85rem", lineHeight: 1.55 }}>
-              You can spend this much today.
+              You can spend this much per day for the rest of this period.
             </p>
           </aside>
         ) : null}

@@ -1,4 +1,4 @@
-import { endOfMonth, format, parseISO, startOfMonth, subDays } from "date-fns";
+import { differenceInCalendarDays, endOfMonth, format, parseISO, startOfMonth, subDays } from "date-fns";
 import type { BudgetState, Category, Goal, Transaction } from "./types";
 
 export function totalPlannedIncome(s: Pick<BudgetState, "memberIncomes">): number {
@@ -167,4 +167,38 @@ export function overallSavingsProgress(goals: Goal[], transactions: Transaction[
   const t = totalGoalsTargetUsd(goals);
   if (t <= 0) return 0;
   return Math.min(1, totalGoalsSavedUsd(goals, transactions) / t);
+}
+
+export interface SafeToSpendResult {
+  perDayUsd: number;
+  daysRemaining: number;
+  discretionaryRemainingUsd: number;
+}
+
+/**
+ * Income-based daily safe-to-spend for the CURRENT period:
+ *   (planned income − expenses logged so far this period) ÷ inclusive days left.
+ * Recurring items & goal contributions are already expense transactions in the period,
+ * so they are captured by the expense sum. Returns null when not applicable (past period,
+ * no income, or the reference date is past the period end).
+ */
+export function safeToSpendToday(
+  state: Pick<BudgetState, "editable" | "period" | "memberIncomes" | "transactions">,
+  today: Date,
+): SafeToSpendResult | null {
+  if (!state.editable) return null;
+  const income = totalPlannedIncome(state);
+  if (income <= 0) return null;
+  const end = parseISO(state.period.endDate);
+  const daysRemaining = differenceInCalendarDays(end, today) + 1;
+  if (!Number.isFinite(daysRemaining) || daysRemaining < 1) return null;
+  const expenses = state.transactions
+    .filter((t) => t.type === "expense")
+    .reduce((s, t) => s + (Number.isFinite(t.amount) ? t.amount : 0), 0);
+  const discretionaryRemainingUsd = Math.max(0, income - expenses);
+  return {
+    perDayUsd: discretionaryRemainingUsd / daysRemaining,
+    daysRemaining,
+    discretionaryRemainingUsd,
+  };
 }
