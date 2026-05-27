@@ -15,6 +15,7 @@ import type { BudgetState, Goal, Transaction } from "@/lib/budget/types";
 type NudgeBudgetContextValue = {
   state: BudgetState;
   currentUserId: string;
+  whopUserToken: string | null;
   selectPeriod: (periodId: string | null) => Promise<void>;
   setMemberIncome: (whopUserId: string, amount: number) => void;
   addTransaction: (t: Omit<Transaction, "id" | "createdBy" | "periodId">) => void;
@@ -38,7 +39,7 @@ const Ctx = createContext<NudgeBudgetContextValue | null>(null);
 
 const WHOP_USER_TOKEN_HEADER = "x-whop-user-token";
 
-function nudgeBudgetFetchInit(token: string | null | undefined, init?: RequestInit): RequestInit {
+export function nudgeBudgetFetchInit(token: string | null | undefined, init?: RequestInit): RequestInit {
   const nextHeaders = new Headers(init?.headers);
   if (token) nextHeaders.set(WHOP_USER_TOKEN_HEADER, token.trim());
   return { ...init, headers: nextHeaders };
@@ -312,6 +313,7 @@ export function NudgeBudgetProvider(props: {
     () => ({
       state,
       currentUserId: props.userId,
+      whopUserToken: props.whopUserToken ?? null,
       selectPeriod,
       setMemberIncome,
       addTransaction,
@@ -327,6 +329,7 @@ export function NudgeBudgetProvider(props: {
     [
       state,
       props.userId,
+      props.whopUserToken,
       selectPeriod,
       setMemberIncome,
       addTransaction,

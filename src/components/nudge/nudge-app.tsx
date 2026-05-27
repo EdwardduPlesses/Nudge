@@ -14,6 +14,7 @@ import {
   NudgeTopBar,
   type NudgeTabKey,
 } from "@/components/nudge/nudge-tab-nav";
+import { SharingDialog } from "@/components/nudge/sharing-dialog";
 import { ThemeToggle } from "@/components/nudge/theme-toggle";
 import { displayCurrencyItems, useCurrency } from "@/context/currency-context";
 import type { DisplayCurrency } from "@/lib/currency-config";
@@ -77,11 +78,14 @@ function SignOutButton() {
 
 export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
   const [tab, setTab] = useState<TabKey>("overview");
+  const [shareOpen, setShareOpen] = useState(false);
   const today = format(new Date(), "EEEE, MMMM d");
   const edition = format(new Date(), "yy.MM");
 
   return (
     <>
+      <SharingDialog open={shareOpen} onOpenChange={setShareOpen} />
+
       {/* ───── Desktop top app bar (full-bleed, sticky) ───── */}
       <NudgeTopBar
         value={tab}
@@ -89,6 +93,13 @@ export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
         actions={
           <>
             <TopBarCurrencySelect />
+            <button
+              type="button"
+              className="nudge-topbar-link"
+              onClick={() => setShareOpen(true)}
+            >
+              Share
+            </button>
             <span aria-hidden className="nudge-topbar-divider" />
             {props.showSignOut ? <SignOutButton /> : null}
             <ThemeToggle />
@@ -115,6 +126,13 @@ export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
               </h1>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                onClick={() => setShareOpen(true)}
+              >
+                Share
+              </button>
               {props.showSignOut ? (
                 <form action="/api/auth/logout" method="post">
                   <button
