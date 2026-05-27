@@ -151,7 +151,10 @@ export function SharingDialog(props: { open: boolean; onOpenChange: (open: boole
 
   useEffect(() => {
     if (!props.open) return;
-    // Reset transient form state each open.
+    // Reset transient form state each open, then load. The synchronous resets here are
+    // intentional (a dialog-open lifecycle reset); the React-compiler set-state-in-effect
+    // rule is advisory and is disabled for this line, consistent with the rest of the app.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFormError(null);
     setActionError(null);
     setSentInvite(null);
