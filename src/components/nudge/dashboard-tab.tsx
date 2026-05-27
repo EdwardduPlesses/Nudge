@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { AddTransactionDialog } from "@/components/nudge/add-transaction-dialog";
@@ -11,26 +11,72 @@ import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
 import { computeMonthlySpendingVelocity } from "@/lib/budget/velocity";
 import {
+  memberLabel,
   sumExpenses,
   sumIncome,
+  transactionsByActor,
   transactionsThisMonth,
 } from "@/lib/budget/selectors";
+
+function WhoPill(props: { active: boolean; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={props.onClick}
+      className="max-w-[220px] truncate"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "0.35rem",
+        minHeight: 32,
+        padding: "0 0.85rem",
+        borderRadius: 999,
+        fontFamily: "var(--font-manrope), sans-serif",
+        fontSize: 12,
+        fontWeight: 600,
+        letterSpacing: "0.02em",
+        whiteSpace: "nowrap",
+        cursor: "pointer",
+        transition: "background 200ms ease, border-color 200ms ease, color 200ms ease",
+        background: props.active
+          ? "color-mix(in srgb, var(--gold-bright) 12%, var(--surface))"
+          : "var(--surface)",
+        border: `1px solid ${props.active ? "var(--hairline-gold)" : "var(--hairline-strong)"}`,
+        color: props.active ? "var(--gold)" : "var(--ink-soft)",
+      }}
+    >
+      {props.label}
+    </button>
+  );
+}
 
 export function DashboardTab() {
   const { state } = useNudgeBudget();
   const c = useCurrency();
   const fmt = c.formatFromUsd;
+  const [whoFilter, setWhoFilter] = useState<string>("all");
+
+  // Person filter narrows the spend/velocity/category figures (income totals stay
+  // whole-household). Wrap the transaction source the cards compute from.
+  const scopedTransactions = useMemo(
+    () =>
+      whoFilter === "all"
+        ? state.transactions
+        : transactionsByActor(state.transactions, { mode: "user", userId: whoFilter }),
+    [state.transactions, whoFilter],
+  );
+
   const monthTx = useMemo(
-    () => transactionsThisMonth(state.transactions, new Date()),
-    [state.transactions],
+    () => transactionsThisMonth(scopedTransactions, new Date()),
+    [scopedTransactions],
   );
   const income = useMemo(() => sumIncome(monthTx), [monthTx]);
   const spent = useMemo(() => sumExpenses(monthTx), [monthTx]);
   const net = income - spent;
 
   const v = useMemo(
-    () => computeMonthlySpendingVelocity(state.transactions, state.categories),
-    [state.transactions, state.categories],
+    () => computeMonthlySpendingVelocity(scopedTransactions, state.categories),
+    [scopedTransactions, state.categories],
   );
 
   const forecastDisplay =
@@ -79,6 +125,27 @@ export function DashboardTab() {
           />
         </div>
       </header>
+
+      {state.members.length >= 2 ? (
+        <div>
+          <span className="eyebrow mb-2 block">Who</span>
+          <div className="flex flex-wrap gap-2">
+            <WhoPill
+              active={whoFilter === "all"}
+              label="All"
+              onClick={() => setWhoFilter("all")}
+            />
+            {state.members.map((m) => (
+              <WhoPill
+                key={m.whopUserId}
+                active={whoFilter === m.whopUserId}
+                label={memberLabel(state.members, m.whopUserId)}
+                onClick={() => setWhoFilter(m.whopUserId)}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {state.transactions.length === 0 ? (
         <div
