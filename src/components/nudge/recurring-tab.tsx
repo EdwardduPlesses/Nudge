@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Badge, Button, Callout, Dialog, Select, Switch, Text, TextField } from "frosted-ui";
+import { Badge, Button, Callout, Select, Switch, Text, TextField } from "frosted-ui";
 import { useCurrency } from "@/context/currency-context";
 import { nudgeBudgetFetchInit, useNudgeBudget } from "@/context/nudge-budget-context";
 
@@ -85,7 +85,7 @@ function ItemRow(props: {
   );
 }
 
-export function RecurringDialog(props: { open: boolean; onOpenChange: (open: boolean) => void }) {
+export function RecurringTab() {
   const { state, whopUserToken } = useNudgeBudget();
   const c = useCurrency();
 
@@ -142,16 +142,11 @@ export function RecurringDialog(props: { open: boolean; onOpenChange: (open: boo
     setFormError(null);
   }
 
+  // Load on mount.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
-    if (!props.open) return;
-    // Reset transient form/error state on open, then load. These synchronous resets
-    // are an intentional dialog-open lifecycle reset, not a cascading derivation, so
-    // the React-compiler set-state-in-effect rule is disabled here as elsewhere.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setActionError(null);
-    resetForm();
     void refetch();
-  }, [props.open, refetch]);
+  }, [refetch]);
 
   async function toggleActive(id: string, active: boolean) {
     setBusyId(id);
@@ -253,200 +248,202 @@ export function RecurringDialog(props: { open: boolean; onOpenChange: (open: boo
   const showCategory = type === "expense";
 
   return (
-    <Dialog.Root open={props.open} onOpenChange={props.onOpenChange}>
-      <Dialog.Content
-        size="3"
-        className="max-h-[calc(100dvh-2rem)] max-w-[min(calc(100vw-1.5rem),24rem)] overflow-y-auto overscroll-contain sm:max-w-md"
-      >
-        <Dialog.Title>Recurring items</Dialog.Title>
-        <Dialog.Description size="2" color="gray" className="leading-relaxed">
-          Income and expenses that repeat every budget period.
-        </Dialog.Description>
+    <div className="flex flex-col gap-8">
+      {/* ───── Header ───── */}
+      <header className="min-w-0">
+        <span className="eyebrow">
+          <span className="eyebrow-gold">N°03</span>
+          <span aria-hidden style={{ margin: "0 0.5em", color: "var(--ink-faint)" }}>
+            —
+          </span>
+          Recurring
+        </span>
+        <h2
+          className="heading-display mt-3"
+          style={{ color: "var(--ink)", fontSize: "clamp(1.6rem, 3.6vw, 2.15rem)", lineHeight: 1.1 }}
+        >
+          Recurring
+        </h2>
+        <p className="mt-2 max-w-prose" style={{ color: "var(--ink-muted)", fontSize: "0.95rem", lineHeight: 1.55 }}>
+          Income and bills that are added automatically at the start of each new budget period.
+        </p>
+      </header>
 
-        <div className="mt-6 flex flex-col gap-7">
-          {loadError ? (
-            <Callout.Root color="red" size="1">
-              <Callout.Text>{loadError}</Callout.Text>
-            </Callout.Root>
-          ) : null}
+      <div className="flex flex-col gap-7">
+        {loadError ? (
+          <Callout.Root color="red" size="1">
+            <Callout.Text>{loadError}</Callout.Text>
+          </Callout.Root>
+        ) : null}
 
-          {loading ? (
-            <Text size="2" color="gray">
-              Loading…
-            </Text>
-          ) : (
-            <>
-              {/* Existing items */}
-              <section className="flex flex-col gap-3">
-                <Text size="2" weight="medium" className="block text-foreground/80">
-                  Your recurring items
+        {loading ? (
+          <Text size="2" color="gray">
+            Loading…
+          </Text>
+        ) : (
+          <>
+            {/* Existing items */}
+            <section className="flex flex-col gap-3">
+              <Text size="2" weight="medium" className="block text-foreground/80">
+                Your recurring items
+              </Text>
+              {actionError ? (
+                <Callout.Root color="red" size="1">
+                  <Callout.Text>{actionError}</Callout.Text>
+                </Callout.Root>
+              ) : null}
+              {items.length > 0 ? (
+                items.map((item) => (
+                  <ItemRow
+                    key={item.id}
+                    item={item}
+                    categoryName={categoryName(item.categoryId)}
+                    busy={busyId === item.id}
+                    onToggleActive={(id, active) => void toggleActive(id, active)}
+                    onRemove={(id) => void removeItem(id)}
+                  />
+                ))
+              ) : (
+                <Text size="2" color="gray" className="leading-relaxed">
+                  No recurring items yet. Add one below.
                 </Text>
-                {actionError ? (
-                  <Callout.Root color="red" size="1">
-                    <Callout.Text>{actionError}</Callout.Text>
-                  </Callout.Root>
-                ) : null}
-                {items.length > 0 ? (
-                  items.map((item) => (
-                    <ItemRow
-                      key={item.id}
-                      item={item}
-                      categoryName={categoryName(item.categoryId)}
-                      busy={busyId === item.id}
-                      onToggleActive={(id, active) => void toggleActive(id, active)}
-                      onRemove={(id) => void removeItem(id)}
-                    />
-                  ))
-                ) : (
-                  <Text size="2" color="gray" className="leading-relaxed">
-                    No recurring items yet. Add one below.
+              )}
+            </section>
+
+            {/* Add form */}
+            <section className="flex flex-col gap-5">
+              <Text size="2" weight="medium" className="block text-foreground/80">
+                Add recurring item
+              </Text>
+
+              {formError ? (
+                <Callout.Root color="red" size="1">
+                  <Callout.Text>{formError}</Callout.Text>
+                </Callout.Root>
+              ) : null}
+
+              <form
+                className="flex flex-col gap-5"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void submit();
+                }}
+              >
+                <div>
+                  <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
+                    Type
                   </Text>
-                )}
-              </section>
+                  <Select.Root value={type} onValueChange={(v) => setType(v as RecurringType)}>
+                    <Select.Trigger
+                      placeholder="Choose type"
+                      aria-label="Recurring item type"
+                      className="min-h-11 w-full"
+                    />
+                    <Select.Content>
+                      <Select.Item value="expense">Expense</Select.Item>
+                      <Select.Item value="income">Income</Select.Item>
+                    </Select.Content>
+                  </Select.Root>
+                </div>
 
-              {/* Add form */}
-              <section className="flex flex-col gap-5">
-                <Text size="2" weight="medium" className="block text-foreground/80">
-                  Add recurring item
-                </Text>
+                <div>
+                  <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
+                    Amount
+                  </Text>
+                  <TextField.Root className="nudge-field w-full">
+                    <TextField.Input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      step={c.currencyCode === "JPY" ? "1" : "any"}
+                      enterKeyHint="done"
+                      autoComplete="off"
+                      placeholder={c.currencyCode === "JPY" ? "0" : "0.00"}
+                      value={amount}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setAmount(e.target.value)
+                      }
+                    />
+                  </TextField.Root>
+                </div>
 
-                {formError ? (
-                  <Callout.Root color="red" size="1">
-                    <Callout.Text>{formError}</Callout.Text>
-                  </Callout.Root>
-                ) : null}
-
-                <form
-                  className="flex flex-col gap-5"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    void submit();
-                  }}
-                >
+                {showCategory && state.categories.length > 0 ? (
                   <div>
                     <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
-                      Type
+                      Category <span className="font-normal text-gray-500">(optional)</span>
                     </Text>
-                    <Select.Root value={type} onValueChange={(v) => setType(v as RecurringType)}>
+                    <Select.Root value={categoryId} onValueChange={setCategoryId}>
                       <Select.Trigger
-                        placeholder="Choose type"
-                        aria-label="Recurring item type"
+                        placeholder="No category"
+                        aria-label="Recurring item category"
                         className="min-h-11 w-full"
                       />
                       <Select.Content>
-                        <Select.Item value="expense">Expense</Select.Item>
-                        <Select.Item value="income">Income</Select.Item>
+                        <Select.Item value={NO_CATEGORY}>No category</Select.Item>
+                        {state.categories.map((cat) => (
+                          <Select.Item key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </Select.Item>
+                        ))}
                       </Select.Content>
                     </Select.Root>
                   </div>
+                ) : null}
 
-                  <div>
-                    <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
-                      Amount
-                    </Text>
-                    <TextField.Root className="nudge-field w-full">
-                      <TextField.Input
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        step={c.currencyCode === "JPY" ? "1" : "any"}
-                        enterKeyHint="done"
-                        autoComplete="off"
-                        placeholder={c.currencyCode === "JPY" ? "0" : "0.00"}
-                        value={amount}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                          setAmount(e.target.value)
-                        }
-                      />
-                    </TextField.Root>
-                  </div>
+                <div>
+                  <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
+                    Note <span className="font-normal text-gray-500">(optional)</span>
+                  </Text>
+                  <TextField.Root className="nudge-field w-full">
+                    <TextField.Input
+                      placeholder="e.g. rent, salary"
+                      autoComplete="off"
+                      value={note}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setNote(e.target.value)
+                      }
+                    />
+                  </TextField.Root>
+                </div>
 
-                  {showCategory && state.categories.length > 0 ? (
-                    <div>
-                      <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
-                        Category <span className="font-normal text-gray-500">(optional)</span>
-                      </Text>
-                      <Select.Root value={categoryId} onValueChange={setCategoryId}>
-                        <Select.Trigger
-                          placeholder="No category"
-                          aria-label="Recurring item category"
-                          className="min-h-11 w-full"
-                        />
-                        <Select.Content>
-                          <Select.Item value={NO_CATEGORY}>No category</Select.Item>
-                          {state.categories.map((cat) => (
-                            <Select.Item key={cat.id} value={cat.id}>
-                              {cat.name}
-                            </Select.Item>
-                          ))}
-                        </Select.Content>
-                      </Select.Root>
-                    </div>
-                  ) : null}
+                <div>
+                  <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
+                    Day of period{" "}
+                    <span className="font-normal text-gray-500">(optional, 1–28)</span>
+                  </Text>
+                  <TextField.Root className="nudge-field w-full sm:max-w-32">
+                    <TextField.Input
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={28}
+                      step={1}
+                      autoComplete="off"
+                      placeholder="Period start"
+                      value={day}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDay(e.target.value)}
+                    />
+                  </TextField.Root>
+                </div>
 
-                  <div>
-                    <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
-                      Note <span className="font-normal text-gray-500">(optional)</span>
-                    </Text>
-                    <TextField.Root className="nudge-field w-full">
-                      <TextField.Input
-                        placeholder="e.g. rent, salary"
-                        autoComplete="off"
-                        value={note}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                          setNote(e.target.value)
-                        }
-                      />
-                    </TextField.Root>
-                  </div>
+                <Button
+                  type="submit"
+                  size="3"
+                  color="gold"
+                  disabled={submitting}
+                  className="w-full shadow-sm sm:w-auto sm:self-end"
+                >
+                  {submitting ? "Adding…" : "Add recurring item"}
+                </Button>
+              </form>
+            </section>
 
-                  <div>
-                    <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
-                      Day of period{" "}
-                      <span className="font-normal text-gray-500">(optional, 1–28)</span>
-                    </Text>
-                    <TextField.Root className="nudge-field w-full sm:max-w-32">
-                      <TextField.Input
-                        type="number"
-                        inputMode="numeric"
-                        min={1}
-                        max={28}
-                        step={1}
-                        autoComplete="off"
-                        placeholder="Period start"
-                        value={day}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDay(e.target.value)}
-                      />
-                    </TextField.Root>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    size="3"
-                    color="gold"
-                    disabled={submitting}
-                    className="w-full shadow-sm sm:w-auto sm:self-end"
-                  >
-                    {submitting ? "Adding…" : "Add recurring item"}
-                  </Button>
-                </form>
-              </section>
-
-              <Text size="1" color="gray" className="leading-relaxed">
-                Recurring items are added automatically at the start of each new budget period.
-              </Text>
-            </>
-          )}
-        </div>
-
-        <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Dialog.Close>
-            <Button type="button" variant="soft" color="gray" size="3" className="w-full sm:w-auto">
-              Close
-            </Button>
-          </Dialog.Close>
-        </div>
-      </Dialog.Content>
-    </Dialog.Root>
+            <Text size="1" color="gray" className="leading-relaxed">
+              Recurring items are added automatically at the start of each new budget period.
+            </Text>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
