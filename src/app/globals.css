@@ -1007,9 +1007,12 @@ body::before {
 /* When mobile nav is visible, reserve space at the bottom of the page
    so floating content (and last cards) clear the bar. */
 @media (max-width: 639.98px) {
+  /* Reserve enough space for both the floating bottom nav and the FAB so the
+     last of the scrollable content clears them. The FAB sits at bottom 6.25rem
+     and is 3.75rem tall (≈10rem from the bottom), so reserve a bit beyond that. */
   .nudge-app-shell {
     padding-bottom: calc(
-      6.5rem + env(safe-area-inset-bottom, 0px)
+      11rem + env(safe-area-inset-bottom, 0px)
     );
   }
   .atelier-fab {
@@ -1043,9 +1046,13 @@ body::before {
    Existing app overrides (visual layer transform of frosted-ui)
    ───────────────────────────────────────────────────────────── */
 
-/* Embeds + phones: respect safe area */
-.nudge-app-shell {
-  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+/* Embeds on larger screens: respect safe area. Scoped to >=640px so it does
+   NOT override the mobile bottom-nav/FAB reservation in the max-width:639.98px
+   block above (equal specificity, and this rule comes later in the file). */
+@media (min-width: 640px) {
+  .nudge-app-shell {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .nudge-field input,
