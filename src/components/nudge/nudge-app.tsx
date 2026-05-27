@@ -14,6 +14,7 @@ import {
   NudgeTopBar,
   type NudgeTabKey,
 } from "@/components/nudge/nudge-tab-nav";
+import { PeriodSelector } from "@/components/nudge/period-selector";
 import { SharingDialog } from "@/components/nudge/sharing-dialog";
 import { ThemeToggle } from "@/components/nudge/theme-toggle";
 import { displayCurrencyItems, useCurrency } from "@/context/currency-context";
@@ -181,6 +182,7 @@ export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
 
           <div className="flex flex-wrap items-end justify-between gap-4">
             <HeaderCurrencySelect />
+            <PeriodSelector />
           </div>
         </header>
 
@@ -215,6 +217,12 @@ export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
           >
             Budget clarity, without the spreadsheet.
           </span>
+          <span
+            aria-hidden
+            className="hidden h-3 w-px sm:inline-block"
+            style={{ background: "var(--hairline-strong)" }}
+          />
+          <PeriodSelector />
           {props.devMode ? (
             <>
               <span
