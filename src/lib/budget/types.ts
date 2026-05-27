@@ -1,9 +1,30 @@
+export interface Member {
+  whopUserId: string;
+  role: "owner" | "member";
+  displayName: string | null;
+  color: string | null;
+}
+
+export interface Period {
+  id: string;
+  startDate: string;
+  endDate: string;
+  label: string | null;
+}
+
+export interface MemberIncome {
+  whopUserId: string;
+  plannedAmount: number;
+}
+
 export interface Category {
   id: string;
   name: string;
   /** Monthly spending limit (USD) */
   budgetLimit: number;
   color: string;
+  /** Whop user id of who created it; null for legacy/pre-attribution rows. */
+  createdBy: string | null;
 }
 
 export interface Transaction {
@@ -15,6 +36,10 @@ export interface Transaction {
   /** When set: expense increases goal balance (transfer to savings); income decreases it (withdrawal). */
   goalId: string | null;
   note: string;
+  /** Whop user id of who created it; null for legacy/pre-attribution rows. */
+  createdBy: string | null;
+  /** Period this transaction belongs to (assigned by date). */
+  periodId: string | null;
 }
 
 export interface Goal {
@@ -27,10 +52,19 @@ export interface Goal {
    */
   savedAmount: number;
   deadline: string | null;
+  /** Whop user id of who created it; null for legacy/pre-attribution rows. */
+  createdBy: string | null;
 }
 
 export interface BudgetState {
-  incomePlan: number;
+  workbookId: string;
+  periodAnchorDay: number;
+  members: Member[];
+  /** The period this snapshot represents (current or a selected past period). */
+  period: Period;
+  /** Whether this period is editable (current period) or read-only (past). */
+  editable: boolean;
+  memberIncomes: MemberIncome[];
   categories: Category[];
   transactions: Transaction[];
   goals: Goal[];
