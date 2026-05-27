@@ -979,6 +979,31 @@ body::before {
   color: var(--ink);
 }
 
+/* ── Sub-tab strip pills (secondary nav within a grouped section) ── */
+.nudge-subtab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 32px;
+  padding: 0 0.85rem;
+  border-radius: 999px;
+  font-family: var(--font-manrope), sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 200ms ease, border-color 200ms ease, color 200ms ease;
+  background: var(--surface);
+  border: 1px solid var(--hairline-strong);
+  color: var(--ink-soft);
+}
+.nudge-subtab[data-active="true"] {
+  background: color-mix(in srgb, var(--gold-bright) 12%, var(--surface));
+  border-color: var(--hairline-gold);
+  color: var(--gold);
+}
+
 /* When mobile nav is visible, reserve space at the bottom of the page
    so floating content (and last cards) clear the bar. */
 @media (max-width: 639.98px) {

@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Button, Progress, Select, TextField } from "frosted-ui";
-import { RecurringDialog } from "@/components/nudge/recurring-dialog";
+import { Progress, TextField } from "frosted-ui";
 import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
 import {
@@ -96,14 +95,11 @@ export function BudgetsTab() {
     addCategory,
     setMemberIncome,
     currentUserId,
-    periodAnchorDay,
-    setPeriodAnchorDay,
   } = useNudgeBudget();
   const readOnly = !state.editable;
   const [newName, setNewName] = useState("");
   const [newCap, setNewCap] = useState("200");
   const [incomeDraft, setIncomeDraft] = useState("");
-  const [recurringOpen, setRecurringOpen] = useState(false);
 
   const myIncome = useMemo(
     () => state.memberIncomes.find((i) => i.whopUserId === currentUserId)?.plannedAmount ?? 0,
@@ -290,36 +286,6 @@ export function BudgetsTab() {
           <Progress value={budgetUsedRatio * 100} color="gold" />
         </div>
 
-        <div
-          className="mt-6 flex flex-col gap-2 pt-5 sm:max-w-xs"
-          style={{ borderTop: "1px solid var(--hairline)" }}
-        >
-          <span className="eyebrow">Budget cycle starts on</span>
-          <Select.Root
-            value={String(periodAnchorDay)}
-            disabled={readOnly}
-            onValueChange={(v) => {
-              void setPeriodAnchorDay(Number(v));
-            }}
-          >
-            <Select.Trigger
-              placeholder="Start day"
-              aria-label="Budget cycle start day"
-              className="min-h-10 w-full"
-            />
-            <Select.Content>
-              {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
-                <Select.Item key={day} value={String(day)}>
-                  {`Day ${day}`}
-                </Select.Item>
-              ))}
-              <Select.Item value="31">Last day of month</Select.Item>
-            </Select.Content>
-          </Select.Root>
-          <p style={{ color: "var(--ink-muted)", fontSize: "0.8rem", lineHeight: 1.5 }}>
-            Defines when each monthly budget period begins.
-          </p>
-        </div>
       </section>
 
       <div className="atelier-rule" role="presentation">
@@ -337,15 +303,6 @@ export function BudgetsTab() {
             Categories
           </span>
           <div className="flex items-center gap-3">
-            <Button
-              type="button"
-              variant="soft"
-              color="gray"
-              size="2"
-              onClick={() => setRecurringOpen(true)}
-            >
-              Recurring items
-            </Button>
             <span className="eyebrow tabular" style={{ color: "var(--ink-faint)" }}>
               {String(state.categories.length).padStart(2, "0")} entries
             </span>
@@ -471,7 +428,6 @@ export function BudgetsTab() {
         </div>
       </section>
 
-      <RecurringDialog open={recurringOpen} onOpenChange={setRecurringOpen} />
     </div>
   );
 }

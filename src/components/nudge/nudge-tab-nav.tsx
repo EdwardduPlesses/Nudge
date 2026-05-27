@@ -2,30 +2,35 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-export type NudgeTabKey =
+export type NudgeLeafKey =
   | "overview"
   | "activity"
   | "insights"
   | "budgets"
+  | "recurring"
   | "goals"
-  | "debts";
+  | "debts"
+  | "settings";
+export type NudgeTopKey =
+  | "overview"
+  | "activity"
+  | "plan"
+  | "money"
+  | "insights";
 
-type TabSpec = {
-  key: NudgeTabKey;
+export type NavChild = { key: NudgeLeafKey; label: string };
+export type NavTop = {
+  key: NudgeTopKey;
   label: string;
   hint: string;
   icon: (props: { className?: string }) => React.JSX.Element;
+  children?: NavChild[];
 };
 
 const useIsoLayoutEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect;
 
-const TABS: TabSpec[] = [
-  {
-    key: "overview",
-    label: "Overview",
-    hint: "Today",
-    icon: ({ className }) => (
+const iconOverview = ({ className }: { className?: string }) => (
       <svg
         viewBox="0 0 24 24"
         fill="none"
@@ -38,13 +43,9 @@ const TABS: TabSpec[] = [
       >
         <path d="M4 13h6V4H4zM14 20h6v-9h-6zM14 8h6V4h-6zM4 20h6v-4H4z" />
       </svg>
-    ),
-  },
-  {
-    key: "activity",
-    label: "Activity",
-    hint: "Ledger",
-    icon: ({ className }) => (
+);
+
+const iconActivity = ({ className }: { className?: string }) => (
       <svg
         viewBox="0 0 24 24"
         fill="none"
@@ -57,13 +58,9 @@ const TABS: TabSpec[] = [
       >
         <path d="M3 12h3l2-7 4 14 3-10 2 5h4" />
       </svg>
-    ),
-  },
-  {
-    key: "insights",
-    label: "Insights",
-    hint: "Signals",
-    icon: ({ className }) => (
+);
+
+const iconInsights = ({ className }: { className?: string }) => (
       <svg
         viewBox="0 0 24 24"
         fill="none"
@@ -77,13 +74,9 @@ const TABS: TabSpec[] = [
         <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" />
         <circle cx="12" cy="12" r="3" />
       </svg>
-    ),
-  },
-  {
-    key: "budgets",
-    label: "Budgets",
-    hint: "Envelopes",
-    icon: ({ className }) => (
+);
+
+const iconBudgets = ({ className }: { className?: string }) => (
       <svg
         viewBox="0 0 24 24"
         fill="none"
@@ -97,13 +90,9 @@ const TABS: TabSpec[] = [
         <circle cx="12" cy="12" r="8.5" />
         <path d="M12 3.5v8.5l6 6" />
       </svg>
-    ),
-  },
-  {
-    key: "goals",
-    label: "Goals",
-    hint: "North star",
-    icon: ({ className }) => (
+);
+
+const iconGoals = ({ className }: { className?: string }) => (
       <svg
         viewBox="0 0 24 24"
         fill="none"
@@ -116,31 +105,46 @@ const TABS: TabSpec[] = [
       >
         <path d="M5 21V4M5 4h11l-2 4 2 4H5" />
       </svg>
-    ),
+);
+
+export const NAV: NavTop[] = [
+  { key: "overview", label: "Overview", hint: "Today", icon: iconOverview },
+  { key: "activity", label: "Activity", hint: "Ledger", icon: iconActivity },
+  {
+    key: "plan",
+    label: "Plan",
+    hint: "Budget",
+    icon: iconBudgets,
+    children: [
+      { key: "budgets", label: "Budgets" },
+      { key: "recurring", label: "Recurring" },
+    ],
   },
   {
-    key: "debts",
-    label: "Debts",
-    hint: "Payoff",
-    icon: ({ className }) => (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={className}
-        aria-hidden
-      >
-        <rect x="3" y="7" width="18" height="10" rx="2" />
-        <circle cx="12" cy="12" r="2.2" />
-        <path d="M3 11h2M19 13h2" />
-        <path d="M9 21l3-3 3 3" />
-      </svg>
-    ),
+    key: "money",
+    label: "Money goals",
+    hint: "Targets",
+    icon: iconGoals,
+    children: [
+      { key: "goals", label: "Goals" },
+      { key: "debts", label: "Debts" },
+    ],
   },
+  { key: "insights", label: "Insights", hint: "Signals", icon: iconInsights },
 ];
+
+export function defaultLeafFor(top: NudgeTopKey): NudgeLeafKey {
+  const item = NAV.find((n) => n.key === top);
+  if (item?.children && item.children.length > 0) return item.children[0].key;
+  return top as unknown as NudgeLeafKey;
+}
+export function topKeyForLeaf(leaf: NudgeLeafKey): NudgeTopKey {
+  for (const n of NAV) {
+    if (n.key === (leaf as unknown as NudgeTopKey)) return n.key;
+    if (n.children?.some((c) => c.key === leaf)) return n.key;
+  }
+  return "overview";
+}
 
 /* ─────────────────────────────────────────────────────────────
    NudgeTopBar — full-bleed sticky top app bar (desktop only)
@@ -149,8 +153,8 @@ const TABS: TabSpec[] = [
    ───────────────────────────────────────────────────────────── */
 
 export function NudgeTopBar(props: {
-  value: NudgeTabKey;
-  onChange: (next: NudgeTabKey) => void;
+  value: NudgeTopKey;
+  onChange: (next: NudgeTopKey) => void;
   actions?: React.ReactNode;
 }) {
   return (
@@ -176,8 +180,8 @@ export function NudgeTopBar(props: {
 }
 
 function DesktopTabPill(props: {
-  value: NudgeTabKey;
-  onChange: (next: NudgeTabKey) => void;
+  value: NudgeTopKey;
+  onChange: (next: NudgeTopKey) => void;
 }) {
   const listRef = useRef<HTMLDivElement | null>(null);
   const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -225,7 +229,7 @@ function DesktopTabPill(props: {
             : { opacity: 0 }
         }
       />
-      {TABS.map((t) => {
+      {NAV.map((t) => {
         const active = props.value === t.key;
         return (
           <button
@@ -254,8 +258,8 @@ function DesktopTabPill(props: {
    ───────────────────────────────────────────────────────────── */
 
 export function NudgeMobileTabBar(props: {
-  value: NudgeTabKey;
-  onChange: (next: NudgeTabKey) => void;
+  value: NudgeTopKey;
+  onChange: (next: NudgeTopKey) => void;
 }) {
   const railRef = useRef<HTMLDivElement | null>(null);
   const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -287,7 +291,7 @@ export function NudgeMobileTabBar(props: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.value]);
 
-  const activeSpec = TABS.find((t) => t.key === props.value) ?? TABS[0];
+  const activeSpec = NAV.find((t) => t.key === props.value) ?? NAV[0];
 
   return (
     <nav
@@ -315,7 +319,7 @@ export function NudgeMobileTabBar(props: {
               : { opacity: 0 }
           }
         />
-        {TABS.map((t) => {
+        {NAV.map((t) => {
           const active = props.value === t.key;
           return (
             <button
@@ -339,6 +343,41 @@ export function NudgeMobileTabBar(props: {
           );
         })}
       </div>
+    </nav>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   NudgeSubTabs — secondary sub-section strip for grouped tabs
+   ───────────────────────────────────────────────────────────── */
+
+export function NudgeSubTabs(props: {
+  items: NavChild[];
+  value: NudgeLeafKey;
+  onChange: (k: NudgeLeafKey) => void;
+}) {
+  return (
+    <nav
+      className="flex flex-wrap items-center gap-2"
+      role="tablist"
+      aria-label="Sub-sections"
+    >
+      {props.items.map((c) => {
+        const active = props.value === c.key;
+        return (
+          <button
+            key={c.key}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            data-active={active ? "true" : undefined}
+            className="nudge-subtab"
+            onClick={() => props.onChange(c.key)}
+          >
+            {c.label}
+          </button>
+        );
+      })}
     </nav>
   );
 }
