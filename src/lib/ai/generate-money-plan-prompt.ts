@@ -6,6 +6,7 @@ import {
   sumExpenses,
   sumIncome,
   totalGoalsSavedUsd,
+  totalPlannedIncome,
   transactionsThisMonth,
 } from "@/lib/budget/selectors";
 
@@ -56,8 +57,9 @@ function buildDerivedContext(
     (s, c) => s + (Number.isFinite(c.budgetLimit) ? Math.max(0, c.budgetLimit) : 0),
     0,
   );
-  const remainingVsIncomePlan = Number.isFinite(budgetState.incomePlan)
-    ? budgetState.incomePlan - monthExpenses
+  const plannedIncome = totalPlannedIncome(budgetState);
+  const remainingVsIncomePlan = Number.isFinite(plannedIncome)
+    ? plannedIncome - monthExpenses
     : NaN;
 
   let goalsSummaryLine: string;
@@ -79,7 +81,7 @@ function buildDerivedContext(
     "## Derived totals (use these for tables and scorecards; do not fabricate)",
     `- Reference calendar month for transaction rollups: **${monthLabel}**`,
     `- As-of calendar date context: ${refDay}`,
-    `- Planned monthly income (user target): ${fm(budgetState.incomePlan)}`,
+    `- Planned monthly income (user target): ${fm(plannedIncome)}`,
     `- Sum of category spending limits (planned bucket capacity): ${fm(totalPlannedLimits)}`,
     `- Month-to-date logged expenses (${monthLabel}): ${fm(monthExpenses)}`,
     `- Month-to-date logged income (${monthLabel}): ${fm(monthIncomeLogged)}`,
@@ -193,7 +195,7 @@ export function generateMoneyPlanPrompt(
   formatMoney: (usd: number) => string,
 ): string {
   const fm = (usd: number) => formatMoney(Number.isFinite(usd) ? usd : 0);
-  const income = fm(budgetState.incomePlan);
+  const income = fm(totalPlannedIncome(budgetState));
   const now = new Date();
 
   const catLines =
