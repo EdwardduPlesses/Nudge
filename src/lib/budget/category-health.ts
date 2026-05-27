@@ -1,4 +1,4 @@
-import type { BudgetState } from "./types";
+import type { BudgetState, Transaction } from "./types";
 import { categorySpendThisMonth } from "./selectors";
 
 export type CategoryHealthStatus = "SAFE" | "WARNING" | "HIGH" | "OVER";
@@ -38,9 +38,11 @@ export function insightFromStatus(status: CategoryHealthStatus): string {
 export function computeCategoryHealthRows(
   state: Pick<BudgetState, "categories" | "transactions">,
   reference: Date,
+  transactionsOverride?: Transaction[],
 ): CategoryHealthRow[] {
+  const transactions = transactionsOverride ?? state.transactions;
   return state.categories.map((cat) => {
-    const spend = categorySpendThisMonth(cat.id, state.transactions, reference);
+    const spend = categorySpendThisMonth(cat.id, transactions, reference);
     const limit = cat.budgetLimit;
 
     if (!(limit > 0)) {

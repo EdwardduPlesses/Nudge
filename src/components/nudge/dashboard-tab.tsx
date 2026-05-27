@@ -218,7 +218,7 @@ export function DashboardTab() {
             Allocations
           </span>
         </div>
-        <CategoryHealthList />
+        <CategoryHealthList transactions={scopedTransactions} />
       </section>
     </div>
   );
