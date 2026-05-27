@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { Select } from "frosted-ui";
 import { ActivityTab } from "@/components/nudge/activity-tab";
 import { QuickAddExpenseButton } from "@/components/nudge/quick-add-expense-button";
 import { BudgetsTab } from "@/components/nudge/budgets-tab";
@@ -13,109 +12,45 @@ import { InsightsTab } from "@/components/nudge/insights-tab";
 import {
   NudgeMobileTabBar,
   NudgeTopBar,
-  type NudgeTabKey,
+  NudgeSubTabs,
+  NAV,
+  defaultLeafFor,
+  type NudgeTopKey,
+  type NudgeLeafKey,
 } from "@/components/nudge/nudge-tab-nav";
 import { PeriodSelector } from "@/components/nudge/period-selector";
-import { SharingDialog } from "@/components/nudge/sharing-dialog";
-import { ThemeToggle } from "@/components/nudge/theme-toggle";
-import { displayCurrencyItems, useCurrency } from "@/context/currency-context";
-import type { DisplayCurrency } from "@/lib/currency-config";
-
-type TabKey = NudgeTabKey;
-
-function HeaderCurrencySelect() {
-  const { currencyCode, changeCurrency } = useCurrency();
-  const items = displayCurrencyItems();
-
-  return (
-    <div className="flex min-w-0 flex-col gap-1.5">
-      <span className="eyebrow">Currency</span>
-      <Select.Root
-        value={currencyCode}
-        onValueChange={(v) => void changeCurrency(v as DisplayCurrency)}
-      >
-        <Select.Trigger
-          placeholder="Currency"
-          className="min-h-10 w-full max-w-[min(100%,16rem)]"
-        />
-        <Select.Content>
-          {items.map((it) => (
-            <Select.Item key={it.code} value={it.code}>
-              {it.label}
-            </Select.Item>
-          ))}
-        </Select.Content>
-      </Select.Root>
-      <span style={{ color: "var(--ink-muted)", fontSize: "0.78rem", lineHeight: 1.4 }}>
-        Changing this converts all amounts at today&apos;s rate.
-      </span>
-    </div>
-  );
-}
-
-function TopBarCurrencySelect() {
-  const { currencyCode, changeCurrency } = useCurrency();
-  const items = displayCurrencyItems();
-  return (
-    <Select.Root
-      value={currencyCode}
-      onValueChange={(v) => void changeCurrency(v as DisplayCurrency)}
-    >
-      <Select.Trigger
-        placeholder="Currency"
-        aria-label="Display currency"
-        title="Changing this converts all amounts at today's rate."
-        className="nudge-topbar-currency"
-      />
-      <Select.Content>
-        {items.map((it) => (
-          <Select.Item key={it.code} value={it.code}>
-            {it.label}
-          </Select.Item>
-        ))}
-      </Select.Content>
-    </Select.Root>
-  );
-}
-
-function SignOutButton() {
-  return (
-    <form action="/api/auth/logout" method="post">
-      <button type="submit" className="nudge-topbar-link">
-        Sign out
-      </button>
-    </form>
-  );
-}
+import { SettingsTab } from "@/components/nudge/settings-tab";
+import { RecurringTab } from "@/components/nudge/recurring-tab";
 
 export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
-  const [tab, setTab] = useState<TabKey>("overview");
-  const [shareOpen, setShareOpen] = useState(false);
+  const [activeTop, setActiveTop] = useState<NudgeTopKey | "settings">("overview");
+  const [activeLeaf, setActiveLeaf] = useState<NudgeLeafKey>("overview");
+  const selectTop = (top: NudgeTopKey) => {
+    setActiveTop(top);
+    setActiveLeaf(defaultLeafFor(top));
+  };
+  const openSettings = () => {
+    setActiveTop("settings");
+    setActiveLeaf("settings");
+  };
   const today = format(new Date(), "EEEE, MMMM d");
   const edition = format(new Date(), "yy.MM");
 
   return (
     <>
-      <SharingDialog open={shareOpen} onOpenChange={setShareOpen} />
-
       {/* ───── Desktop top app bar (full-bleed, sticky) ───── */}
       <NudgeTopBar
-        value={tab}
-        onChange={setTab}
+        value={activeTop === "settings" ? ("" as NudgeTopKey) : activeTop}
+        onChange={selectTop}
         actions={
-          <>
-            <TopBarCurrencySelect />
-            <button
-              type="button"
-              className="nudge-topbar-link"
-              onClick={() => setShareOpen(true)}
-            >
-              Share
-            </button>
-            <span aria-hidden className="nudge-topbar-divider" />
-            {props.showSignOut ? <SignOutButton /> : null}
-            <ThemeToggle />
-          </>
+          <button
+            type="button"
+            className="nudge-topbar-link"
+            aria-label="Settings"
+            onClick={openSettings}
+          >
+            ⚙ Settings
+          </button>
         }
       />
 
@@ -141,21 +76,11 @@ export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
               <button
                 type="button"
                 className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-                onClick={() => setShareOpen(true)}
+                aria-label="Settings"
+                onClick={openSettings}
               >
-                Share
+                ⚙
               </button>
-              {props.showSignOut ? (
-                <form action="/api/auth/logout" method="post">
-                  <button
-                    type="submit"
-                    className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-                  >
-                    Sign out
-                  </button>
-                </form>
-              ) : null}
-              <ThemeToggle />
             </div>
           </div>
 
@@ -192,7 +117,6 @@ export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
           </div>
 
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <HeaderCurrencySelect />
             <PeriodSelector />
           </div>
         </header>
@@ -248,22 +172,41 @@ export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
           ) : null}
         </div>
 
+        {/* ───── Sub-tab strip ───── */}
+        {(() => {
+          const item = NAV.find((n) => n.key === activeTop);
+          return item?.children ? (
+            <div className="-mt-2">
+              <NudgeSubTabs
+                items={item.children}
+                value={activeLeaf}
+                onChange={setActiveLeaf}
+              />
+            </div>
+          ) : null;
+        })()}
+
         {/* ───── Content ───── */}
         <div
           role="tabpanel"
           className="min-h-[min(320px,50vh)] min-w-0 flex-1"
         >
-          {tab === "overview" ? <DashboardTab /> : null}
-          {tab === "activity" ? <ActivityTab /> : null}
-          {tab === "insights" ? <InsightsTab /> : null}
-          {tab === "budgets" ? <BudgetsTab /> : null}
-          {tab === "goals" ? <GoalsTab /> : null}
-          {tab === "debts" ? <DebtsTab /> : null}
+          {activeLeaf === "overview" ? <DashboardTab /> : null}
+          {activeLeaf === "activity" ? <ActivityTab /> : null}
+          {activeLeaf === "insights" ? <InsightsTab /> : null}
+          {activeLeaf === "budgets" ? <BudgetsTab /> : null}
+          {activeLeaf === "recurring" ? <RecurringTab /> : null}
+          {activeLeaf === "goals" ? <GoalsTab /> : null}
+          {activeLeaf === "debts" ? <DebtsTab /> : null}
+          {activeLeaf === "settings" ? <SettingsTab showSignOut={props.showSignOut} /> : null}
         </div>
       </div>
 
       {/* ───── Mobile bottom tab bar (fixed) ───── */}
-      <NudgeMobileTabBar value={tab} onChange={setTab} />
+      <NudgeMobileTabBar
+        value={activeTop === "settings" ? ("" as NudgeTopKey) : activeTop}
+        onChange={selectTop}
+      />
 
       <QuickAddExpenseButton variant="fab" />
     </>

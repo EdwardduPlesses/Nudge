@@ -107,7 +107,7 @@ const iconGoals = ({ className }: { className?: string }) => (
       </svg>
 );
 
-const NAV: NavTop[] = [
+export const NAV: NavTop[] = [
   { key: "overview", label: "Overview", hint: "Today", icon: iconOverview },
   { key: "activity", label: "Activity", hint: "Ledger", icon: iconActivity },
   {
