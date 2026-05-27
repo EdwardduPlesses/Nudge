@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { periodRangeFor, nextPeriodStart, clampAnchorDay } from "./period-math";
+import { materializeRecurring } from "./recurring";
 
 export interface PeriodRow {
   id: string;
@@ -56,6 +57,7 @@ export async function ensureCurrentPeriod(
     const range = periodRangeFor(cursorStart, anchor);
     const created = await insertPeriod(workbookId, range.start, range.end);
     if (snapshotFrom) await copySnapshot(snapshotFrom.id, created.id);
+    await materializeRecurring(workbookId, { id: created.id, startDate: created.startDate, endDate: created.endDate });
     last = created;
     snapshotFrom = created;
     if (range.start === target.start) break;
@@ -63,6 +65,7 @@ export async function ensureCurrentPeriod(
   }
   if (!last) {
     last = await insertPeriod(workbookId, target.start, target.end);
+    await materializeRecurring(workbookId, { id: last.id, startDate: last.startDate, endDate: last.endDate });
   }
   return last;
 }
