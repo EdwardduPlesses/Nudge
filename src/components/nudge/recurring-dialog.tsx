@@ -54,7 +54,7 @@ function ItemRow(props: {
       </div>
       <div className="flex shrink-0 flex-col gap-3 sm:items-end">
         <p className="text-right text-lg font-bold tabular-nums tracking-tight">
-          {c.formatFromUsd(item.amount)}
+          {c.formatAmount(item.amount)}
         </p>
         <div className="flex items-center gap-3">
           <label className="flex cursor-pointer items-center gap-2">
@@ -199,18 +199,9 @@ export function RecurringDialog(props: { open: boolean; onOpenChange: (open: boo
 
   async function submit() {
     setFormError(null);
-    const n = Number.parseFloat(amount);
-    if (!Number.isFinite(n) || n <= 0) {
+    const amt = c.parseAmount(amount);
+    if (!Number.isFinite(amt) || amt <= 0) {
       setFormError("Enter an amount greater than zero.");
-      return;
-    }
-    if (c.currency !== "USD" && c.rateLoading) {
-      setFormError("Exchange rate still loading — try again in a moment.");
-      return;
-    }
-    const usd = c.displayAmountAsUsd(n);
-    if (!Number.isFinite(usd) || usd <= 0) {
-      setFormError("Enter a valid amount.");
       return;
     }
 
@@ -230,7 +221,7 @@ export function RecurringDialog(props: { open: boolean; onOpenChange: (open: boo
       categoryId?: string;
       note?: string;
       dayOfPeriod?: number;
-    } = { type, amount: usd };
+    } = { type, amount: amt };
     if (type === "expense" && categoryId !== NO_CATEGORY) body.categoryId = categoryId;
     if (note.trim()) body.note = note.trim();
     if (dayOfPeriod != null) body.dayOfPeriod = dayOfPeriod;
@@ -269,7 +260,7 @@ export function RecurringDialog(props: { open: boolean; onOpenChange: (open: boo
       >
         <Dialog.Title>Recurring items</Dialog.Title>
         <Dialog.Description size="2" color="gray" className="leading-relaxed">
-          Income and expenses that repeat every budget period. {c.canonicalHint}
+          Income and expenses that repeat every budget period.
         </Dialog.Description>
 
         <div className="mt-6 flex flex-col gap-7">
@@ -351,19 +342,18 @@ export function RecurringDialog(props: { open: boolean; onOpenChange: (open: boo
 
                   <div>
                     <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
-                      Amount {c.amountApproxLabel}
+                      Amount
                     </Text>
                     <TextField.Root className="nudge-field w-full">
                       <TextField.Input
                         type="number"
                         inputMode="decimal"
                         min={0}
-                        step={c.currency === "JPY" ? "1" : "any"}
+                        step={c.currencyCode === "JPY" ? "1" : "any"}
                         enterKeyHint="done"
                         autoComplete="off"
-                        placeholder={c.currency === "JPY" ? "0" : "0.00"}
+                        placeholder={c.currencyCode === "JPY" ? "0" : "0.00"}
                         value={amount}
-                        disabled={c.currency !== "USD" && c.rateLoading}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           setAmount(e.target.value)
                         }

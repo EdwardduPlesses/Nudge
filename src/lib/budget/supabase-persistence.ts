@@ -13,17 +13,18 @@ function num(v: unknown, fallback = 0): number {
   return fallback;
 }
 
-async function loadWorkbookMeta(workbookId: string): Promise<{ anchorDay: number; members: Member[] }> {
+async function loadWorkbookMeta(workbookId: string): Promise<{ anchorDay: number; baseCurrency: string; members: Member[] }> {
   const supabase = getSupabaseAdmin();
   const { data: wb, error: wbErr } = await supabase
     .from("nudge_workbooks")
-    .select("period_anchor_day")
+    .select("period_anchor_day, base_currency")
     .eq("id", workbookId)
     .single();
   if (wbErr) throw wbErr;
   const enriched = await ensureMemberProfiles(workbookId);
   return {
     anchorDay: num(wb.period_anchor_day, 1),
+    baseCurrency: (wb.base_currency as string) ?? "USD",
     members: enriched.map((m) => ({
       whopUserId: m.whopUserId,
       role: m.role as "owner" | "member",
@@ -44,7 +45,7 @@ export async function fetchBudgetStateForUser(
 ): Promise<BudgetState> {
   const supabase = getSupabaseAdmin();
   const workbookId = await ensureActiveWorkbook(whopUserId);
-  const { anchorDay, members } = await loadWorkbookMeta(workbookId);
+  const { anchorDay, baseCurrency, members } = await loadWorkbookMeta(workbookId);
   const current = await ensureCurrentPeriod(workbookId, anchorDay, todayIso);
 
   let period: PeriodRow = current;
@@ -105,6 +106,7 @@ export async function fetchBudgetStateForUser(
   return {
     workbookId,
     periodAnchorDay: anchorDay,
+    baseCurrency,
     members,
     period: { id: period.id, startDate: period.startDate, endDate: period.endDate, label: period.label },
     editable,

@@ -34,9 +34,6 @@ function TxnFormFields(props: {
   goalOptions: { value: string; label: string }[];
   goalId: string;
   setGoalId: (v: string) => void;
-  amountApproxLabel: string;
-  currency: string;
-  rateLoading: boolean;
   jpy: boolean;
 }) {
   const showCategory = props.entryType === "expense";
@@ -112,7 +109,7 @@ function TxnFormFields(props: {
 
       <div>
         <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
-          Amount {props.amountApproxLabel}
+          Amount
         </Text>
         <TextField.Root className="nudge-field w-full">
           <TextField.Input
@@ -124,7 +121,6 @@ function TxnFormFields(props: {
             autoComplete="off"
             placeholder={props.jpy ? "0" : "0.00"}
             value={props.amount}
-            disabled={props.currency !== "USD" && props.rateLoading}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => props.setAmount(e.target.value)}
           />
         </TextField.Root>
@@ -247,11 +243,8 @@ export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
   }
 
   function submit() {
-    const n = Number.parseFloat(amount);
-    if (!Number.isFinite(n) || n <= 0) return;
-    if (c.currency !== "USD" && c.rateLoading) return;
-    const usd = c.displayAmountAsUsd(n);
-    if (!Number.isFinite(usd) || usd <= 0) return;
+    const amt = c.parseAmount(amount);
+    if (!Number.isFinite(amt) || amt <= 0) return;
 
     let type: "income" | "expense";
     let cat: string | null;
@@ -277,7 +270,7 @@ export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
 
     addTransaction({
       date: transactionDateIsoUtc(date),
-      amount: usd,
+      amount: amt,
       type,
       categoryId: cat,
       goalId: gid,
@@ -303,7 +296,7 @@ export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
       >
         <Dialog.Title>Add transaction</Dialog.Title>
         <Dialog.Description size="2" color="gray" className="leading-relaxed">
-          Income, expenses, or goal transfers. {c.canonicalHint}
+          Income, expenses, or goal transfers.
         </Dialog.Description>
 
         <form
@@ -330,10 +323,7 @@ export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
             goalOptions={goalOptions}
             goalId={goalId}
             setGoalId={setGoalId}
-            amountApproxLabel={c.amountApproxLabel}
-            currency={c.currency}
-            rateLoading={c.rateLoading}
-            jpy={c.currency === "JPY"}
+            jpy={c.currencyCode === "JPY"}
           />
 
           <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -393,7 +383,7 @@ export function EditTransactionDialog(props: {
   useEffect(() => {
     if (!props.open || !tx) return;
     const fb = state.categories[0]?.id ?? "";
-    setAmount(String(c.usdAsDisplayAmount(tx.amount)));
+    setAmount(String(tx.amount));
     setNote(tx.note);
     setDate(format(parseISO(tx.date), "yyyy-MM-dd"));
 
@@ -408,7 +398,7 @@ export function EditTransactionDialog(props: {
       setGoalId("");
       setCategoryId(tx.categoryId ?? fb);
     }
-  }, [props.open, tx, state.categories, c.usdAsDisplayAmount]);
+  }, [props.open, tx, state.categories]);
 
   function handleEntryType(next: TransactionEntryType) {
     setEntryType(next);
@@ -433,11 +423,8 @@ export function EditTransactionDialog(props: {
 
   function submit() {
     if (!tx) return;
-    const n = Number.parseFloat(amount);
-    if (!Number.isFinite(n) || n <= 0) return;
-    if (c.currency !== "USD" && c.rateLoading) return;
-    const usd = c.displayAmountAsUsd(n);
-    if (!Number.isFinite(usd) || usd <= 0) return;
+    const amt = c.parseAmount(amount);
+    if (!Number.isFinite(amt) || amt <= 0) return;
 
     let type: "income" | "expense";
     let cat: string | null;
@@ -463,7 +450,7 @@ export function EditTransactionDialog(props: {
 
     updateTransaction(tx.id, {
       date: transactionDateIsoUtc(date),
-      amount: usd,
+      amount: amt,
       type,
       categoryId: cat,
       goalId: gid,
@@ -482,7 +469,7 @@ export function EditTransactionDialog(props: {
       >
         <Dialog.Title>Edit transaction</Dialog.Title>
         <Dialog.Description size="2" color="gray" className="leading-relaxed">
-          Update this entry. {c.canonicalHint}
+          Update this entry.
         </Dialog.Description>
 
         <form
@@ -509,10 +496,7 @@ export function EditTransactionDialog(props: {
             goalOptions={goalOptions}
             goalId={goalId}
             setGoalId={setGoalId}
-            amountApproxLabel={c.amountApproxLabel}
-            currency={c.currency}
-            rateLoading={c.rateLoading}
-            jpy={c.currency === "JPY"}
+            jpy={c.currencyCode === "JPY"}
           />
 
           <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

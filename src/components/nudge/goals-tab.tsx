@@ -16,9 +16,6 @@ function GoalFormFields(props: {
   setTarget: (v: string) => void;
   deadline: string;
   setDeadline: (v: string) => void;
-  amountApproxLabel: string;
-  currency: string;
-  rateLoading: boolean;
   jpy: boolean;
 }) {
   return (
@@ -35,7 +32,7 @@ function GoalFormFields(props: {
         </TextField.Root>
       </div>
       <div>
-        <span className="eyebrow mb-2 block">Target {props.amountApproxLabel}</span>
+        <span className="eyebrow mb-2 block">Target</span>
         <TextField.Root className="nudge-field w-full">
           <TextField.Input
             type="number"
@@ -43,7 +40,6 @@ function GoalFormFields(props: {
             min={0}
             step={props.jpy ? 1 : "any"}
             autoComplete="off"
-            disabled={props.currency !== "USD" && props.rateLoading}
             value={props.target}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => props.setTarget(e.target.value)}
           />
@@ -63,7 +59,7 @@ function GoalFormFields(props: {
 
 export function GoalsTab() {
   const c = useCurrency();
-  const fmt = c.formatFromUsd;
+  const fmt = c.formatAmount;
   const { state, addGoal, updateGoal, removeGoal } = useNudgeBudget();
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -87,20 +83,19 @@ export function GoalsTab() {
   useEffect(() => {
     if (!editOpen || !editing) return;
     setEditName(editing.name);
-    setEditTarget(String(c.usdAsDisplayAmount(editing.targetAmount)));
+    setEditTarget(String(editing.targetAmount));
     setEditDeadline(
       editing.deadline
         ? format(parseISO(editing.deadline), "yyyy-MM-dd")
         : "",
     );
-  }, [editOpen, editing, c.currency, c.usdAsDisplayAmount]);
+  }, [editOpen, editing]);
 
   function submitCreate() {
-    const t = Number.parseFloat(target);
-    const targetUsd = Number.isFinite(t) ? c.displayAmountAsUsd(t) : 0;
+    const t = c.parseAmount(target);
     addGoal({
       name: name.trim() || "New goal",
-      targetAmount: Math.max(0, targetUsd),
+      targetAmount: Math.max(0, Number.isFinite(t) ? t : 0),
       savedAmount: 0,
       deadline: deadline ? `${deadline}T12:00:00.000Z` : null,
     });
@@ -110,11 +105,10 @@ export function GoalsTab() {
 
   function submitEdit() {
     if (!editing) return;
-    const t = Number.parseFloat(editTarget);
-    const targetUsd = Number.isFinite(t) ? c.displayAmountAsUsd(t) : 0;
+    const t = c.parseAmount(editTarget);
     updateGoal(editing.id, {
       name: editName.trim() || editing.name,
-      targetAmount: Math.max(0, targetUsd),
+      targetAmount: Math.max(0, Number.isFinite(t) ? t : 0),
       deadline: editDeadline ? `${editDeadline}T12:00:00.000Z` : null,
     });
     setEditOpen(false);
@@ -178,10 +172,7 @@ export function GoalsTab() {
               setTarget={setTarget}
               deadline={deadline}
               setDeadline={setDeadline}
-              amountApproxLabel={c.amountApproxLabel}
-              currency={c.currency}
-              rateLoading={c.rateLoading}
-              jpy={c.currency === "JPY"}
+              jpy={c.currencyCode === "JPY"}
             />
 
             <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -249,10 +240,7 @@ export function GoalsTab() {
                 setTarget={setEditTarget}
                 deadline={editDeadline}
                 setDeadline={setEditDeadline}
-                amountApproxLabel={c.amountApproxLabel}
-                currency={c.currency}
-                rateLoading={c.rateLoading}
-                jpy={c.currency === "JPY"}
+                jpy={c.currencyCode === "JPY"}
               />
 
               <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

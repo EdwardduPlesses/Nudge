@@ -55,7 +55,7 @@ function FilterPill(props: {
 
 export function ActivityTab() {
   const c = useCurrency();
-  const fmt = c.formatFromUsd;
+  const fmt = c.formatAmount;
   const { state, removeTransaction } = useNudgeBudget();
   const [typeFilter, setTypeFilter] = useState<ActivityFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");

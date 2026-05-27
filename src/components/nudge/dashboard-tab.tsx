@@ -53,7 +53,7 @@ function WhoPill(props: { active: boolean; label: string; onClick: () => void })
 export function DashboardTab() {
   const { state } = useNudgeBudget();
   const c = useCurrency();
-  const fmt = c.formatFromUsd;
+  const fmt = c.formatAmount;
   const [whoFilter, setWhoFilter] = useState<string>("all");
 
   // Person filter narrows the spend/velocity/category figures (income totals stay

@@ -59,14 +59,8 @@ export function QuickAddExpenseDialog(props: { trigger: React.ReactNode }) {
       setAmountError("Enter an amount");
       return;
     }
-    const n = Number.parseFloat(trimmed);
-    if (!Number.isFinite(n) || n <= 0) {
-      setAmountError("Enter a valid amount");
-      return;
-    }
-    if (c.currency !== "USD" && c.rateLoading) return;
-    const usd = c.displayAmountAsUsd(n);
-    if (!Number.isFinite(usd) || usd <= 0) {
+    const amt = c.parseAmount(trimmed);
+    if (!Number.isFinite(amt) || amt <= 0) {
       setAmountError("Enter a valid amount");
       return;
     }
@@ -79,7 +73,7 @@ export function QuickAddExpenseDialog(props: { trigger: React.ReactNode }) {
 
     addTransaction({
       date: transactionDateIsoUtc(format(new Date(), "yyyy-MM-dd")),
-      amount: usd,
+      amount: amt,
       type: "expense",
       categoryId: cat,
       goalId: null,
@@ -114,7 +108,7 @@ export function QuickAddExpenseDialog(props: { trigger: React.ReactNode }) {
       >
         <Dialog.Title>Quick add expense</Dialog.Title>
         <Dialog.Description size="2" color="gray" className="leading-relaxed">
-          Logged for today. {c.canonicalHint}
+          Logged for today.
         </Dialog.Description>
 
         <form
@@ -127,7 +121,7 @@ export function QuickAddExpenseDialog(props: { trigger: React.ReactNode }) {
           <div className="mt-6 flex flex-col gap-5">
             <div>
               <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
-                Amount {c.amountApproxLabel}
+                Amount
               </Text>
               <TextField.Root className="nudge-field w-full">
                 <TextField.Input
@@ -135,12 +129,11 @@ export function QuickAddExpenseDialog(props: { trigger: React.ReactNode }) {
                   type="number"
                   inputMode="decimal"
                   min={0}
-                  step={c.currency === "JPY" ? "1" : "any"}
+                  step={c.currencyCode === "JPY" ? "1" : "any"}
                   enterKeyHint="done"
                   autoComplete="off"
-                  placeholder={c.currency === "JPY" ? "0" : "0.00"}
+                  placeholder={c.currencyCode === "JPY" ? "0" : "0.00"}
                   value={amount}
-                  disabled={c.currency !== "USD" && c.rateLoading}
                   aria-invalid={amountError != null}
                   aria-describedby={amountError ? "quick-add-amount-error" : undefined}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -204,7 +197,7 @@ export function QuickAddExpenseDialog(props: { trigger: React.ReactNode }) {
               size="3"
               color="gold"
               className="w-full shadow-sm sm:w-auto"
-              disabled={categoryOptions.length === 0 || (c.currency !== "USD" && c.rateLoading)}
+              disabled={categoryOptions.length === 0}
             >
               Save expense
             </Button>

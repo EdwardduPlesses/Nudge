@@ -24,13 +24,16 @@ import type { DisplayCurrency } from "@/lib/currency-config";
 type TabKey = NudgeTabKey;
 
 function HeaderCurrencySelect() {
-  const { currency, setCurrency } = useCurrency();
+  const { currencyCode, changeCurrency } = useCurrency();
   const items = displayCurrencyItems();
 
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       <span className="eyebrow">Currency</span>
-      <Select.Root value={currency} onValueChange={(v) => setCurrency(v as DisplayCurrency)}>
+      <Select.Root
+        value={currencyCode}
+        onValueChange={(v) => void changeCurrency(v as DisplayCurrency)}
+      >
         <Select.Trigger
           placeholder="Currency"
           className="min-h-10 w-full max-w-[min(100%,16rem)]"
@@ -43,18 +46,25 @@ function HeaderCurrencySelect() {
           ))}
         </Select.Content>
       </Select.Root>
+      <span style={{ color: "var(--ink-muted)", fontSize: "0.78rem", lineHeight: 1.4 }}>
+        Changing this converts all amounts at today&apos;s rate.
+      </span>
     </div>
   );
 }
 
 function TopBarCurrencySelect() {
-  const { currency, setCurrency } = useCurrency();
+  const { currencyCode, changeCurrency } = useCurrency();
   const items = displayCurrencyItems();
   return (
-    <Select.Root value={currency} onValueChange={(v) => setCurrency(v as DisplayCurrency)}>
+    <Select.Root
+      value={currencyCode}
+      onValueChange={(v) => void changeCurrency(v as DisplayCurrency)}
+    >
       <Select.Trigger
         placeholder="Currency"
         aria-label="Display currency"
+        title="Changing this converts all amounts at today's rate."
         className="nudge-topbar-currency"
       />
       <Select.Content>

@@ -22,8 +22,8 @@ function CapInput(props: { categoryId: string; budgetLimitUsd: number; disabled?
     // Plain string mirror of the stored cap for the editable draft; not a cascading
     // derivation, so scope-disable the set-state-in-effect rule here (matches MyIncomeInput).
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLocal(String(c.usdAsDisplayAmount(props.budgetLimitUsd)));
-  }, [props.budgetLimitUsd, c.currency, c.usdAsDisplayAmount]);
+    setLocal(String(props.budgetLimitUsd));
+  }, [props.budgetLimitUsd]);
 
   return (
     <TextField.Root className="nudge-field w-full md:w-36">
@@ -31,20 +31,19 @@ function CapInput(props: { categoryId: string; budgetLimitUsd: number; disabled?
         type="number"
         inputMode="decimal"
         min={0}
-        step={c.currency === "JPY" ? 1 : "any"}
+        step={c.currencyCode === "JPY" ? 1 : "any"}
         autoComplete="off"
-        disabled={props.disabled || (c.currency !== "USD" && c.rateLoading)}
+        disabled={props.disabled}
         value={local}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocal(e.target.value)}
         onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
-          const n = Number.parseFloat(e.target.value);
+          const n = c.parseAmount(e.target.value);
           if (!Number.isFinite(n) || n < 0) {
-            setLocal(String(c.usdAsDisplayAmount(props.budgetLimitUsd)));
+            setLocal(String(props.budgetLimitUsd));
             return;
           }
-          const usd = c.displayAmountAsUsd(n);
-          updateCategoryBudget(props.categoryId, usd);
-          setLocal(String(c.usdAsDisplayAmount(usd)));
+          updateCategoryBudget(props.categoryId, n);
+          setLocal(String(n));
         }}
       />
     </TextField.Root>
@@ -60,8 +59,8 @@ function MyIncomeInput(props: { incomeUsd: number; disabled?: boolean }) {
   // this is a plain string mirror of props, not a cascading state derivation.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLocal(String(c.usdAsDisplayAmount(props.incomeUsd)));
-  }, [props.incomeUsd, c.currency, c.usdAsDisplayAmount]);
+    setLocal(String(props.incomeUsd));
+  }, [props.incomeUsd]);
 
   return (
     <TextField.Root className="nudge-field w-full min-w-0 sm:max-w-44">
@@ -69,20 +68,19 @@ function MyIncomeInput(props: { incomeUsd: number; disabled?: boolean }) {
         type="number"
         inputMode="decimal"
         min={0}
-        step={c.currency === "JPY" ? 1 : "any"}
+        step={c.currencyCode === "JPY" ? 1 : "any"}
         autoComplete="off"
-        disabled={props.disabled || (c.currency !== "USD" && c.rateLoading)}
+        disabled={props.disabled}
         value={local}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocal(e.target.value)}
         onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
-          const n = Number.parseFloat(e.target.value);
+          const n = c.parseAmount(e.target.value);
           if (!Number.isFinite(n) || n < 0) {
-            setLocal(String(c.usdAsDisplayAmount(props.incomeUsd)));
+            setLocal(String(props.incomeUsd));
             return;
           }
-          const usd = c.displayAmountAsUsd(n);
-          setMemberIncome(currentUserId, usd);
-          setLocal(String(c.usdAsDisplayAmount(usd)));
+          setMemberIncome(currentUserId, n);
+          setLocal(String(n));
         }}
       />
     </TextField.Root>
@@ -91,7 +89,7 @@ function MyIncomeInput(props: { incomeUsd: number; disabled?: boolean }) {
 
 export function BudgetsTab() {
   const c = useCurrency();
-  const fmt = c.formatFromUsd;
+  const fmt = c.formatAmount;
   const {
     state,
     renameCategory,
@@ -123,8 +121,8 @@ export function BudgetsTab() {
     // Plain string mirror of stored income for the solo single-input path; not a
     // cascading derivation, so scope-disable the set-state-in-effect rule here.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIncomeDraft(String(c.usdAsDisplayAmount(myIncome)));
-  }, [c.currency, myIncome, c.usdAsDisplayAmount]);
+    setIncomeDraft(String(myIncome));
+  }, [myIncome]);
 
   const monthTx = useMemo(
     () => transactionsThisMonth(state.transactions, new Date()),
@@ -246,7 +244,7 @@ export function BudgetsTab() {
         ) : (
           <div className="mt-5 flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
             <label className="sr-only" htmlFor="budgets-income-plan-input">
-              Monthly income {c.amountApproxLabel}
+              Monthly income
             </label>
             <TextField.Root className="nudge-field w-full min-w-0 sm:max-w-44">
               <TextField.Input
@@ -254,20 +252,19 @@ export function BudgetsTab() {
                 type="number"
                 inputMode="decimal"
                 min={0}
-                step={c.currency === "JPY" ? 1 : "any"}
+                step={c.currencyCode === "JPY" ? 1 : "any"}
                 autoComplete="off"
-                disabled={readOnly || (c.currency !== "USD" && c.rateLoading)}
+                disabled={readOnly}
                 value={incomeDraft}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIncomeDraft(e.target.value)}
                 onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
-                  const n = Number.parseFloat(e.target.value);
+                  const n = c.parseAmount(e.target.value);
                   if (!Number.isFinite(n) || n < 0) {
-                    setIncomeDraft(String(c.usdAsDisplayAmount(myIncome)));
+                    setIncomeDraft(String(myIncome));
                     return;
                   }
-                  const usd = c.displayAmountAsUsd(n);
-                  setMemberIncome(currentUserId, usd);
-                  setIncomeDraft(String(c.usdAsDisplayAmount(usd)));
+                  setMemberIncome(currentUserId, n);
+                  setIncomeDraft(String(n));
                 }}
               />
             </TextField.Root>
@@ -275,7 +272,7 @@ export function BudgetsTab() {
               className="shrink-0 tabular"
               style={{ color: "var(--ink-muted)", fontSize: "0.86rem" }}
             >
-              {c.currency === "USD" ? "USD" : c.currency} / mo
+              {c.currencyCode} / mo
             </span>
           </div>
         )}
@@ -393,7 +390,7 @@ export function BudgetsTab() {
                   style={{ borderTop: "1px solid var(--hairline)" }}
                 >
                   <span className="eyebrow md:mt-0" style={{ paddingTop: "0.75rem" }}>
-                    Monthly cap {c.amountApproxLabel}
+                    Monthly cap
                   </span>
                   <CapInput categoryId={cat.id} budgetLimitUsd={cat.budgetLimit} disabled={readOnly} />
                 </div>
@@ -440,15 +437,15 @@ export function BudgetsTab() {
               </TextField.Root>
             </div>
             <div>
-              <span className="eyebrow mb-2 block">Monthly cap {c.amountApproxLabel}</span>
+              <span className="eyebrow mb-2 block">Monthly cap</span>
               <TextField.Root className="nudge-field w-full">
                 <TextField.Input
                   type="number"
                   inputMode="decimal"
                   min={0}
-                  step={c.currency === "JPY" ? 1 : "any"}
+                  step={c.currencyCode === "JPY" ? 1 : "any"}
                   autoComplete="off"
-                  disabled={readOnly || (c.currency !== "USD" && c.rateLoading)}
+                  disabled={readOnly}
                   value={newCap}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCap(e.target.value)}
                 />
@@ -460,9 +457,8 @@ export function BudgetsTab() {
             disabled={readOnly}
             className="atelier-btn-gold w-full sm:w-auto sm:self-start disabled:cursor-not-allowed disabled:opacity-50"
             onClick={() => {
-              const n = Number.parseFloat(newCap);
-              const capUsd = Number.isFinite(n) ? c.displayAmountAsUsd(n) : 0;
-              addCategory(newName, Math.max(0, capUsd));
+              const capAmount = c.parseAmount(newCap);
+              addCategory(newName, Math.max(0, Number.isFinite(capAmount) ? capAmount : 0));
               setNewName("");
               setNewCap("200");
             }}

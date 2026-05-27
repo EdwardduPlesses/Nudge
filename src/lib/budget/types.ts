@@ -61,6 +61,8 @@ export interface Goal {
 export interface BudgetState {
   workbookId: string;
   periodAnchorDay: number;
+  /** ISO currency the workbook's amounts are stored & displayed in (e.g. "ZAR"). */
+  baseCurrency: string;
   members: Member[];
   /** The period this snapshot represents (current or a selected past period). */
   period: Period;

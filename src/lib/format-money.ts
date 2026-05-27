@@ -55,3 +55,10 @@ export function formatUsdAsDisplay(amountUsd: number, display: DisplayCurrency, 
     value,
   );
 }
+
+/** Format `amount` directly in `code` (no FX). Amounts are already stored in `code`. */
+export function formatMoney(amount: number, code: DisplayCurrency): string {
+  if (!Number.isFinite(amount)) return "—";
+  const value = code === "JPY" ? Math.round(amount) : Math.round(amount * 100) / 100;
+  return new Intl.NumberFormat(localeForCurrency(code), intlCurrencyOptions(code)).format(value);
+}
