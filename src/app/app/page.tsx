@@ -5,7 +5,7 @@ import { NudgeApp } from "@/components/nudge/nudge-app";
 import { CurrencyPreferenceProvider } from "@/context/currency-context";
 import { NudgeBudgetProvider } from "@/context/nudge-budget-context";
 import type { BudgetState } from "@/lib/budget/types";
-import { fetchBudgetStateFromSupabase } from "@/lib/budget/supabase-persistence";
+import { fetchBudgetStateForUser } from "@/lib/budget/supabase-persistence";
 import { isSupabasePersistenceEnabled } from "@/lib/supabase/config";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { userHasAnyNudgeMembership } from "@/lib/auth/standalone-gate";
@@ -49,7 +49,9 @@ export default async function StandaloneAppPage() {
 
   let remoteBudget: { snapshot: BudgetState | null };
   try {
-    remoteBudget = { snapshot: await fetchBudgetStateFromSupabase(user.userId) };
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const snapshot = await fetchBudgetStateForUser(user.userId, todayIso);
+    remoteBudget = { snapshot };
   } catch (err) {
     console.error("[Nudge] Failed to load budget from Supabase (standalone)", err);
     remoteBudget = { snapshot: null };

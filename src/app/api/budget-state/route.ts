@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies, headers } from "next/headers";
-import { parseBudgetStateBody } from "@/lib/budget/parse-budget-state";
-import { fetchBudgetStateFromSupabase, replaceBudgetStateInSupabase } from "@/lib/budget/supabase-persistence";
+import { fetchBudgetStateForUser } from "@/lib/budget/supabase-persistence";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { userHasAnyNudgeMembership } from "@/lib/auth/standalone-gate";
 import { isSupabasePersistenceEnabled } from "@/lib/supabase/config";
@@ -20,55 +19,24 @@ async function resolveBudgetUserId(): Promise<string | null> {
   // (verifyUserToken / NUDGE_STRICT_WHOP=0 dev fallback).
   if (u.source === "standalone-session") {
     const stale = Math.floor(Date.now() / 1000) - u.gateCheckedAt > GATE_REFRESH_SECONDS;
-    if (stale) {
-      const allowed = await userHasAnyNudgeMembership(u.userId);
-      if (!allowed) return null;
-    }
+    if (stale && !(await userHasAnyNudgeMembership(u.userId))) return null;
   }
   return u.userId;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   if (!isSupabasePersistenceEnabled()) {
     return NextResponse.json({ error: "Supabase is not configured" }, { status: 503 });
   }
   const userId = await resolveBudgetUserId();
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const periodId = new URL(req.url).searchParams.get("periodId");
+  const todayIso = new Date().toISOString().slice(0, 10);
   try {
-    const state = await fetchBudgetStateFromSupabase(userId);
+    const state = await fetchBudgetStateForUser(userId, todayIso, periodId);
     return NextResponse.json({ state });
   } catch (err) {
     console.error("[Nudge] GET /api/budget-state failed", err);
-    return NextResponse.json({ error: "Database error" }, { status: 500 });
-  }
-}
-
-export async function PUT(req: Request) {
-  if (!isSupabasePersistenceEnabled()) {
-    return NextResponse.json({ error: "Supabase is not configured" }, { status: 503 });
-  }
-  const userId = await resolveBudgetUserId();
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-  const state = parseBudgetStateBody(body);
-  if (!state) {
-    return NextResponse.json({ error: "Invalid budget payload" }, { status: 400 });
-  }
-  try {
-    await replaceBudgetStateInSupabase(userId, state);
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error("[Nudge] PUT /api/budget-state failed", err);
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 }
