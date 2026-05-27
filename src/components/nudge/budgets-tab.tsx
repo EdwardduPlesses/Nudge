@@ -6,7 +6,9 @@ import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
 import {
   categorySpendThisMonth,
+  memberLabel,
   sumExpenses,
+  totalPlannedIncome,
   transactionsThisMonth,
 } from "@/lib/budget/selectors";
 
@@ -45,6 +47,44 @@ function CapInput(props: { categoryId: string; budgetLimitUsd: number; disabled?
   );
 }
 
+function MyIncomeInput(props: { incomeUsd: number; disabled?: boolean }) {
+  const c = useCurrency();
+  const { setMemberIncome, currentUserId } = useNudgeBudget();
+  const [local, setLocal] = useState("");
+
+  // Sync the editable draft when the stored income or display currency changes;
+  // this is a plain string mirror of props, not a cascading state derivation.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLocal(String(c.usdAsDisplayAmount(props.incomeUsd)));
+  }, [props.incomeUsd, c.currency, c.usdAsDisplayAmount]);
+
+  return (
+    <TextField.Root className="nudge-field w-full min-w-0 sm:max-w-44">
+      <TextField.Input
+        type="number"
+        inputMode="decimal"
+        min={0}
+        step={c.currency === "JPY" ? 1 : "any"}
+        autoComplete="off"
+        disabled={props.disabled || (c.currency !== "USD" && c.rateLoading)}
+        value={local}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocal(e.target.value)}
+        onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+          const n = Number.parseFloat(e.target.value);
+          if (!Number.isFinite(n) || n < 0) {
+            setLocal(String(c.usdAsDisplayAmount(props.incomeUsd)));
+            return;
+          }
+          const usd = c.displayAmountAsUsd(n);
+          setMemberIncome(currentUserId, usd);
+          setLocal(String(c.usdAsDisplayAmount(usd)));
+        }}
+      />
+    </TextField.Root>
+  );
+}
+
 export function BudgetsTab() {
   const c = useCurrency();
   const fmt = c.formatFromUsd;
@@ -67,7 +107,17 @@ export function BudgetsTab() {
     [state.memberIncomes, currentUserId],
   );
 
+  const isShared = state.members.length >= 2;
+  const incomeByUser = useMemo(
+    () => new Map(state.memberIncomes.map((i) => [i.whopUserId, i.plannedAmount])),
+    [state.memberIncomes],
+  );
+  const householdTotal = useMemo(() => totalPlannedIncome(state), [state]);
+
   useEffect(() => {
+    // Plain string mirror of stored income for the solo single-input path; not a
+    // cascading derivation, so scope-disable the set-state-in-effect rule here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIncomeDraft(String(c.usdAsDisplayAmount(myIncome)));
   }, [c.currency, myIncome, c.usdAsDisplayAmount]);
 
@@ -117,20 +167,79 @@ export function BudgetsTab() {
 
       {/* ───── Income plan card ───── */}
       <section className="atelier-card-elevated" style={{ padding: "1.4rem 1.5rem" }}>
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0">
-            <span className="eyebrow">Income plan</span>
-            <h3
-              className="heading-display mt-1.5"
-              style={{ color: "var(--ink)", fontSize: "1.25rem", lineHeight: 1.2 }}
+        <div className="min-w-0">
+          <span className="eyebrow">Income plan</span>
+          <h3
+            className="heading-display mt-1.5"
+            style={{ color: "var(--ink)", fontSize: "1.25rem", lineHeight: 1.2 }}
+          >
+            Monthly income
+          </h3>
+          <p className="mt-1" style={{ color: "var(--ink-muted)", fontSize: "0.86rem", lineHeight: 1.5 }}>
+            Expected cash in for the month (feeds your Overview “left this month”).
+          </p>
+        </div>
+
+        {isShared ? (
+          <div className="mt-5 flex flex-col gap-3">
+            {state.members.map((m) => {
+              const isMe = m.whopUserId === currentUserId;
+              const amountUsd = incomeByUser.get(m.whopUserId) ?? 0;
+              return (
+                <div
+                  key={m.whopUserId}
+                  className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span
+                      className="inline-block h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: m.color ?? "var(--ink-faint)" }}
+                      aria-hidden
+                    />
+                    <span
+                      className="min-w-0 truncate"
+                      style={{ color: "var(--ink)", fontSize: "0.92rem", fontWeight: 500 }}
+                    >
+                      {memberLabel(state.members, m.whopUserId)}
+                      {isMe ? " (you)" : ""}
+                    </span>
+                  </div>
+                  <div className="flex w-full items-center gap-3 sm:w-auto">
+                    {isMe ? (
+                      <MyIncomeInput incomeUsd={myIncome} disabled={readOnly} />
+                    ) : (
+                      <span
+                        className="tabular"
+                        style={{ color: "var(--ink-soft)", fontSize: "0.95rem" }}
+                      >
+                        {fmt(amountUsd)}
+                      </span>
+                    )}
+                    <span
+                      className="shrink-0 tabular"
+                      style={{ color: "var(--ink-muted)", fontSize: "0.86rem" }}
+                    >
+                      / mo
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+            <div
+              className="mt-1 flex items-baseline justify-between pt-3"
+              style={{ borderTop: "1px solid var(--hairline)" }}
             >
-              Monthly income
-            </h3>
-            <p className="mt-1" style={{ color: "var(--ink-muted)", fontSize: "0.86rem", lineHeight: 1.5 }}>
-              Expected cash in for the month (feeds your Overview “left this month”).
-            </p>
+              <span className="eyebrow">Household total</span>
+              <span
+                className="heading-display tabular"
+                style={{ color: "var(--ink)", fontSize: "1.1rem", lineHeight: 1.2 }}
+              >
+                {fmt(householdTotal)} / mo
+              </span>
+            </div>
           </div>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+        ) : (
+          <div className="mt-5 flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
             <label className="sr-only" htmlFor="budgets-income-plan-input">
               Monthly income {c.amountApproxLabel}
             </label>
@@ -164,7 +273,7 @@ export function BudgetsTab() {
               {c.currency === "USD" ? "USD" : c.currency} / mo
             </span>
           </div>
-        </div>
+        )}
 
         <div className="mt-6">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">

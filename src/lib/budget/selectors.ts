@@ -5,6 +5,20 @@ export function totalPlannedIncome(s: Pick<BudgetState, "memberIncomes">): numbe
   return s.memberIncomes.reduce((sum, i) => sum + i.plannedAmount, 0);
 }
 
+export function transactionsByActor(
+  txs: Transaction[],
+  filter: { mode: "all" | "user"; userId?: string },
+): Transaction[] {
+  if (filter.mode === "all" || !filter.userId) return txs;
+  return txs.filter((t) => t.createdBy === filter.userId);
+}
+
+export function memberLabel(members: BudgetState["members"], userId: string | null): string {
+  if (!userId) return "Someone";
+  const m = members.find((x) => x.whopUserId === userId);
+  return m?.displayName ?? `${userId.slice(0, 6)}…`;
+}
+
 /**
  * Calendar day from a stored transaction date. Entries use `yyyy-MM-dd` or
  * `yyyy-MM-ddT12:00:00.000Z` from the picker — compare this string to local month bounds instead

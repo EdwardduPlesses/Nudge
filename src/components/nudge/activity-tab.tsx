@@ -7,8 +7,11 @@ import {
   AddTransactionDialog,
   EditTransactionDialog,
 } from "@/components/nudge/add-transaction-dialog";
+import { ActivityFeed } from "@/components/nudge/activity-feed";
+import { MemberBadge } from "@/components/nudge/member-badge";
 import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
+import { memberLabel, transactionsByActor } from "@/lib/budget/selectors";
 import type { Transaction } from "@/lib/budget/types";
 
 type ActivityFilter = "all" | "income" | "expense";
@@ -56,6 +59,7 @@ export function ActivityTab() {
   const { state, removeTransaction } = useNudgeBudget();
   const [typeFilter, setTypeFilter] = useState<ActivityFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [whoFilter, setWhoFilter] = useState<string>("all");
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [editOpen, setEditOpen] = useState(false);
 
@@ -85,8 +89,11 @@ export function ActivityTab() {
         xs = xs.filter((t) => String(t.categoryId ?? "") === categoryFilter);
       }
     }
+    if (whoFilter !== "all") {
+      xs = transactionsByActor(xs, { mode: "user", userId: whoFilter });
+    }
     return xs;
-  }, [sorted, typeFilter, categoryFilter]);
+  }, [sorted, typeFilter, categoryFilter, whoFilter]);
 
   const categoryFilterOptions = useMemo(() => {
     const ids = new Set<string>();
@@ -180,6 +187,28 @@ export function ActivityTab() {
               </div>
             </div>
           ) : null}
+
+          {state.members.length >= 2 ? (
+            <div>
+              <span className="eyebrow mb-2 block">Who</span>
+              <div className="flex flex-wrap gap-2">
+                <FilterPill
+                  active={whoFilter === "all"}
+                  label="All"
+                  onClick={() => setWhoFilter("all")}
+                />
+                {state.members.map((m) => (
+                  <FilterPill
+                    key={m.whopUserId}
+                    active={whoFilter === m.whopUserId}
+                    label={memberLabel(state.members, m.whopUserId)}
+                    truncate
+                    onClick={() => setWhoFilter(m.whopUserId)}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -191,6 +220,12 @@ export function ActivityTab() {
           if (!o) setEditingTx(null);
         }}
       />
+
+      {/* ───── Recent changes ───── */}
+      <section aria-label="Recent changes" className="atelier-card p-4 sm:p-5">
+        <span className="eyebrow mb-3 block">Recent changes</span>
+        <ActivityFeed filterUserId={whoFilter === "all" ? undefined : whoFilter} />
+      </section>
 
       {/* ───── List ───── */}
       {filtered.length === 0 ? (
@@ -260,6 +295,7 @@ export function ActivityTab() {
                           >
                             {dateLabel}
                           </span>
+                          <MemberBadge userId={t.createdBy} />
                         </div>
                         <p
                           className="wrap-break-word"

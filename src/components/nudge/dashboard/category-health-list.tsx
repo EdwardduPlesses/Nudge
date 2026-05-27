@@ -7,6 +7,7 @@ import {
   computeCategoryHealthRows,
   type CategoryHealthStatus,
 } from "@/lib/budget/category-health";
+import type { Transaction } from "@/lib/budget/types";
 
 type Tone = "success" | "warm" | "info" | "overdue" | undefined;
 
@@ -41,13 +42,13 @@ function barColor(status: CategoryHealthStatus | null): string {
   }
 }
 
-export function CategoryHealthList() {
+export function CategoryHealthList(props: { transactions?: Transaction[] }) {
   const { state } = useNudgeBudget();
   const { formatFromUsd } = useCurrency();
 
   const rows = useMemo(
-    () => computeCategoryHealthRows(state, new Date()),
-    [state],
+    () => computeCategoryHealthRows(state, new Date(), props.transactions),
+    [state, props.transactions],
   );
 
   if (state.categories.length === 0) {

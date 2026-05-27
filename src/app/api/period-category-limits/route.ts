@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { isSupabasePersistenceEnabled } from "@/lib/supabase/config";
 import { resolveMutationContext } from "../_shared/workbook-mutation";
+import { logActivity } from "@/lib/budget/activity";
 
 export const dynamic = "force-dynamic";
 
@@ -19,5 +20,6 @@ export async function PATCH(req: Request) {
     { onConflict: "period_id,category_id" },
   );
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  await logActivity(c.workbookId, c.userId, "updated", "limit", null, "changed a category limit");
   return NextResponse.json({ ok: true });
 }
