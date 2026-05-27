@@ -116,6 +116,12 @@ export function SharingDialog(props: { open: boolean; onOpenChange: (open: boole
   const [busyInvite, setBusyInvite] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // Redeem-a-code (the recipient side of a "by code" invite)
+  const [redeemCode, setRedeemCode] = useState("");
+  const [redeemMode, setRedeemMode] = useState<AcceptMode>("adopt");
+  const [redeemBusy, setRedeemBusy] = useState(false);
+  const [redeemError, setRedeemError] = useState<string | null>(null);
+
   const authedFetch = useCallback(
     (url: string, init?: RequestInit) =>
       fetch(url, nudgeBudgetFetchInit(whopUserToken, { credentials: "include", ...init })),
@@ -162,6 +168,9 @@ export function SharingDialog(props: { open: boolean; onOpenChange: (open: boole
     setSentInvite(null);
     setUsername("");
     setMode("username");
+    setRedeemCode("");
+    setRedeemError(null);
+    setRedeemMode("adopt");
     void refetch();
   }, [props.open, refetch]);
 
@@ -244,6 +253,34 @@ export function SharingDialog(props: { open: boolean; onOpenChange: (open: boole
     }
   }
 
+  async function redeemByCode() {
+    const code = redeemCode.trim().toUpperCase();
+    if (code.length < 8) {
+      setRedeemError("Enter the 8-character code your friend shared.");
+      return;
+    }
+    setRedeemBusy(true);
+    setRedeemError(null);
+    try {
+      const res = await authedFetch("/api/invites/accept", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, mode: redeemMode }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!res.ok || !json.ok) {
+        setRedeemError(json.error || "That code isn't valid. Check it and try again.");
+        return;
+      }
+      // Membership-scoped data must reload.
+      window.location.reload();
+    } catch {
+      setRedeemError("Could not join with that code.");
+    } finally {
+      setRedeemBusy(false);
+    }
+  }
+
   async function declineInvite(inviteId: string) {
     setBusyInvite(inviteId);
     setActionError(null);
@@ -268,6 +305,8 @@ export function SharingDialog(props: { open: boolean; onOpenChange: (open: boole
 
   const hasOutgoing = outgoing.length > 0;
   const showInviteForm = members.length < 2 && !hasOutgoing;
+  // Anyone not already in a full (2-member) budget can redeem a code a friend gave them.
+  const showRedeem = members.length < 2;
 
   return (
     <Dialog.Root open={props.open} onOpenChange={props.onOpenChange}>
@@ -517,6 +556,77 @@ export function SharingDialog(props: { open: boolean; onOpenChange: (open: boole
                       </div>
                     </div>
                   ) : null}
+                </section>
+              ) : null}
+
+              {/* Redeem a code (recipient side of a "by code" invite) */}
+              {showRedeem ? (
+                <section className="flex flex-col gap-3">
+                  <Text size="2" weight="medium" className="block text-foreground/80">
+                    Have a code?
+                  </Text>
+                  <Text size="1" color="gray" className="leading-snug">
+                    Enter the code a friend shared to join their budget.
+                  </Text>
+
+                  {redeemError ? (
+                    <Callout.Root color="red" size="1">
+                      <Callout.Text>{redeemError}</Callout.Text>
+                    </Callout.Root>
+                  ) : null}
+
+                  <form
+                    className="flex flex-col gap-3"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void redeemByCode();
+                    }}
+                  >
+                    <TextField.Root className="nudge-field w-full">
+                      <TextField.Input
+                        placeholder="8-character code"
+                        autoComplete="off"
+                        autoCapitalize="characters"
+                        spellCheck={false}
+                        maxLength={8}
+                        aria-label="Invite code"
+                        className="font-mono tracking-widest uppercase"
+                        value={redeemCode}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          setRedeemCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))
+                        }
+                      />
+                    </TextField.Root>
+
+                    <SegmentedControl.Root
+                      value={redeemMode}
+                      onValueChange={(v) => setRedeemMode(v as AcceptMode)}
+                    >
+                      <SegmentedControl.List>
+                        <SegmentedControl.Trigger value="adopt">
+                          Use their budget
+                        </SegmentedControl.Trigger>
+                        <SegmentedControl.Trigger value="fresh">
+                          Start fresh
+                        </SegmentedControl.Trigger>
+                      </SegmentedControl.List>
+                    </SegmentedControl.Root>
+                    <Text size="1" color="gray" className="leading-snug">
+                      {redeemMode === "adopt"
+                        ? "Join and keep their existing budget data."
+                        : "Join with a clean slate — their data is not copied."}
+                    </Text>
+
+                    <Button
+                      type="submit"
+                      size="3"
+                      color="gold"
+                      disabled={redeemBusy}
+                      className="w-full shadow-sm sm:w-auto sm:self-end"
+                    >
+                      {redeemBusy ? "Joining…" : "Join budget"}
+                    </Button>
+                  </form>
                 </section>
               ) : null}
             </>
