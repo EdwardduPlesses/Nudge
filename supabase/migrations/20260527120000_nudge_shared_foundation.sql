@@ -44,9 +44,12 @@ create table if not exists public.nudge_period_incomes (
 );
 
 -- 5. Per-period category limits
+-- No FK to nudge_categories: its PK is composite (workbook_id, id) since
+-- 20250430140000, so `id` alone is not referenceable. The (period_id, category_id)
+-- key is still unambiguous because period_id pins exactly one workbook.
 create table if not exists public.nudge_period_category_limits (
   period_id uuid not null references public.nudge_periods (id) on delete cascade,
-  category_id text not null references public.nudge_categories (id) on delete cascade,
+  category_id text not null,
   budget_limit double precision not null default 0,
   primary key (period_id, category_id)
 );
@@ -72,7 +75,8 @@ create table if not exists public.nudge_recurring_items (
   workbook_id uuid not null references public.nudge_workbooks (id) on delete cascade,
   type text not null check (type in ('income','expense')),
   amount double precision not null,
-  category_id text references public.nudge_categories (id) on delete set null,
+  -- Plain text (no FK): nudge_categories PK is composite (workbook_id, id).
+  category_id text,
   goal_id text,
   note text not null default '',
   day_of_period smallint,
