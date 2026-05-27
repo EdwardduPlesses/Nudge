@@ -65,3 +65,23 @@ export function localeForCurrency(code: DisplayCurrency): string {
       return "en-US";
   }
 }
+
+/** Conversion multiplier from one display currency to another, via USD pivot. */
+export function crossRate(
+  from: DisplayCurrency,
+  to: DisplayCurrency,
+  usdRates: UsdRatesToTargets,
+): number {
+  if (from === to) return 1;
+  const usdFrom = from === "USD" ? 1 : usdRates[from as FxTargetCode];
+  const usdTo = to === "USD" ? 1 : usdRates[to as FxTargetCode];
+  if (!Number.isFinite(usdFrom) || !Number.isFinite(usdTo) || usdFrom <= 0 || usdTo <= 0) {
+    return NaN;
+  }
+  return usdTo / usdFrom;
+}
+
+/** Fraction digits for storage rounding (JPY is whole-number). */
+export function decimalsFor(code: DisplayCurrency): number {
+  return code === "JPY" ? 0 : 2;
+}
