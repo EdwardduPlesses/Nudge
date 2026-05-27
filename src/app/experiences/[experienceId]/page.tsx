@@ -4,7 +4,8 @@ import { NudgeApp } from "@/components/nudge/nudge-app";
 import { CurrencyPreferenceProvider } from "@/context/currency-context";
 import { NudgeBudgetProvider } from "@/context/nudge-budget-context";
 import type { BudgetState } from "@/lib/budget/types";
-import { fetchBudgetStateFromSupabase } from "@/lib/budget/supabase-persistence";
+import { defaultBudgetState } from "@/lib/budget/defaults";
+import { fetchBudgetStateForUser } from "@/lib/budget/supabase-persistence";
 import { devStrictWhop, NUDGE_DEV_PREVIEW_USER_ID } from "@/lib/nudge-dev-preview";
 import { isSupabasePersistenceEnabled } from "@/lib/supabase/config";
 import { whopsdk } from "@/lib/whop-sdk";
@@ -169,12 +170,14 @@ export default async function ExperiencePage({
     }
   }
 
-  let remoteBudget: { snapshot: BudgetState | null };
+  let remoteBudget: { snapshot: BudgetState };
   try {
-    remoteBudget = { snapshot: await fetchBudgetStateFromSupabase(userId) };
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const snapshot = await fetchBudgetStateForUser(userId, todayIso);
+    remoteBudget = { snapshot };
   } catch (err) {
     console.error("[Nudge] Failed to load budget from Supabase", err);
-    remoteBudget = { snapshot: null };
+    remoteBudget = { snapshot: defaultBudgetState() };
   }
 
   return (

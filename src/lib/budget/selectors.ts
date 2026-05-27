@@ -1,5 +1,9 @@
 import { endOfMonth, format, parseISO, startOfMonth, subDays } from "date-fns";
-import type { Category, Goal, Transaction } from "./types";
+import type { BudgetState, Category, Goal, Transaction } from "./types";
+
+export function totalPlannedIncome(s: Pick<BudgetState, "memberIncomes">): number {
+  return s.memberIncomes.reduce((sum, i) => sum + i.plannedAmount, 0);
+}
 
 /**
  * Calendar day from a stored transaction date. Entries use `yyyy-MM-dd` or

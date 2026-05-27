@@ -59,7 +59,12 @@ workstreams add new files and make minimal additive edits to shared files.
 3. Merge order to `main` is sequential to keep conflicts trivial: after each workstream
    merges, the remaining in-flight branches rebase on `main`.
 4. **Known shared-file touch points** (coordinate / keep edits additive):
-   - `src/components/nudge/nudge-app.tsx` — tab registration (Foundation adds a registry).
+   - Adding a tab = one entry in the `TABS` array in
+     `src/components/nudge/nudge-tab-nav.tsx` (add the key to the `NudgeTabKey` union)
+     + one line in the content switch in `src/components/nudge/nudge-app.tsx`. These are
+     tiny additive diffs; merge sequentially and rebase. (A runtime tab registry was
+     considered for Foundation and deliberately dropped as over-engineering — it would
+     have loosened `NudgeTabKey` to `string` and still required a per-tab import edit.)
    - `src/context/nudge-budget-context.tsx` — context mutation API (Foundation makes it
      per-item; workstreams add methods, never rewrite existing ones).
    - `src/components/nudge/dashboard-tab.tsx` — workstreams C/F add cards.

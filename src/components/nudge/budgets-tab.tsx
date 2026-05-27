@@ -48,14 +48,19 @@ function CapInput(props: { categoryId: string; budgetLimitUsd: number }) {
 export function BudgetsTab() {
   const c = useCurrency();
   const fmt = c.formatFromUsd;
-  const { state, renameCategory, addCategory, setIncomePlan } = useNudgeBudget();
+  const { state, renameCategory, addCategory, setMemberIncome, currentUserId } = useNudgeBudget();
   const [newName, setNewName] = useState("");
   const [newCap, setNewCap] = useState("200");
   const [incomeDraft, setIncomeDraft] = useState("");
 
+  const myIncome = useMemo(
+    () => state.memberIncomes.find((i) => i.whopUserId === currentUserId)?.plannedAmount ?? 0,
+    [state.memberIncomes, currentUserId],
+  );
+
   useEffect(() => {
-    setIncomeDraft(String(c.usdAsDisplayAmount(state.incomePlan)));
-  }, [c.currency, state.incomePlan, c.usdAsDisplayAmount]);
+    setIncomeDraft(String(c.usdAsDisplayAmount(myIncome)));
+  }, [c.currency, myIncome, c.usdAsDisplayAmount]);
 
   const monthTx = useMemo(
     () => transactionsThisMonth(state.transactions, new Date()),
@@ -121,11 +126,11 @@ export function BudgetsTab() {
                 onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
                   const n = Number.parseFloat(e.target.value);
                   if (!Number.isFinite(n) || n < 0) {
-                    setIncomeDraft(String(c.usdAsDisplayAmount(state.incomePlan)));
+                    setIncomeDraft(String(c.usdAsDisplayAmount(myIncome)));
                     return;
                   }
                   const usd = c.displayAmountAsUsd(n);
-                  setIncomePlan(usd);
+                  setMemberIncome(currentUserId, usd);
                   setIncomeDraft(String(c.usdAsDisplayAmount(usd)));
                 }}
               />

@@ -1,11 +1,7 @@
-import type { BudgetState, Category, Goal, Transaction } from "./types";
-import { defaultBudgetState } from "./defaults";
+import type { BudgetState, Category, Goal, Member, MemberIncome, Transaction } from "./types";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-
-type WorkbookRow = {
-  id: string;
-  income_plan: number;
-};
+import { ensureActiveWorkbook } from "./workbook-access";
+import { ensureCurrentPeriod, listPeriods, type PeriodRow } from "./period-repo";
 
 function num(v: unknown, fallback = 0): number {
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -16,175 +12,105 @@ function num(v: unknown, fallback = 0): number {
   return fallback;
 }
 
-function mapCategory(r: {
-  id: string;
-  name: string;
-  budget_limit: number;
-  color: string;
-}): Category {
-  return {
-    id: r.id,
-    name: r.name,
-    budgetLimit: num(r.budget_limit),
-    color: r.color,
-  };
-}
-
-function mapTransaction(r: {
-  id: string;
-  date: string;
-  amount: number;
-  type: string;
-  category_id: string | null;
-  goal_id?: string | null;
-  note: string;
-}): Transaction {
-  const t = r.type === "income" ? "income" : "expense";
-  const gid = r.goal_id;
-  return {
-    id: r.id,
-    date: r.date,
-    amount: num(r.amount),
-    type: t,
-    categoryId: r.category_id,
-    goalId: gid === null || typeof gid === "string" ? gid : null,
-    note: r.note ?? "",
-  };
-}
-
-function mapGoal(r: {
-  id: string;
-  name: string;
-  target_amount: number;
-  saved_amount: number;
-  deadline: string | null;
-}): Goal {
-  return {
-    id: r.id,
-    name: r.name,
-    targetAmount: num(r.target_amount),
-    savedAmount: num(r.saved_amount),
-    deadline: r.deadline,
-  };
-}
-
-export async function fetchBudgetStateFromSupabase(
-  whopUserId: string,
-): Promise<BudgetState | null> {
+async function loadWorkbookMeta(workbookId: string): Promise<{ anchorDay: number; members: Member[] }> {
   const supabase = getSupabaseAdmin();
-  const { data: wb, error: wbErr } = await supabase
-    .from("nudge_workbooks")
-    .select("id, income_plan")
-    .eq("whop_user_id", whopUserId)
-    .maybeSingle();
-
+  const [{ data: wb, error: wbErr }, { data: mem, error: memErr }] = await Promise.all([
+    supabase.from("nudge_workbooks").select("period_anchor_day").eq("id", workbookId).single(),
+    supabase
+      .from("nudge_workbook_members")
+      .select("whop_user_id, role, display_name, color")
+      .eq("workbook_id", workbookId),
+  ]);
   if (wbErr) throw wbErr;
-  if (!wb) return null;
+  if (memErr) throw memErr;
+  return {
+    anchorDay: num(wb.period_anchor_day, 1),
+    members: (mem ?? []).map((r) => ({
+      whopUserId: r.whop_user_id as string,
+      role: (r.role as "owner" | "member") ?? "member",
+      displayName: (r.display_name as string) ?? null,
+      color: (r.color as string) ?? null,
+    })),
+  };
+}
 
-  const wbRow = wb as WorkbookRow;
-  const workbookId = wbRow.id;
+/**
+ * Load one period's slice for the caller. If `periodId` is given, that period is loaded
+ * (read-only when it's not the current period); otherwise the current period is ensured.
+ */
+export async function fetchBudgetStateForUser(
+  whopUserId: string,
+  todayIso: string,
+  periodId?: string | null,
+): Promise<BudgetState> {
+  const supabase = getSupabaseAdmin();
+  const workbookId = await ensureActiveWorkbook(whopUserId);
+  const { anchorDay, members } = await loadWorkbookMeta(workbookId);
+  const current = await ensureCurrentPeriod(workbookId, anchorDay, todayIso);
 
-  const [catRes, txRes, goalRes] = await Promise.all([
-    supabase.from("nudge_categories").select("id, name, budget_limit, color").eq("workbook_id", workbookId),
+  let period: PeriodRow = current;
+  if (periodId && periodId !== current.id) {
+    const all = await listPeriods(workbookId);
+    const sel = all.find((p) => p.id === periodId);
+    if (sel) period = sel;
+  }
+  const editable = period.id === current.id;
+
+  const [incomeRes, catRes, limitRes, txRes, goalRes] = await Promise.all([
+    supabase.from("nudge_period_incomes").select("whop_user_id, planned_amount").eq("period_id", period.id),
+    supabase.from("nudge_categories").select("id, name, color, created_by").eq("workbook_id", workbookId),
+    supabase.from("nudge_period_category_limits").select("category_id, budget_limit").eq("period_id", period.id),
     supabase
       .from("nudge_transactions")
-      .select("id, date, amount, type, category_id, goal_id, note")
-      .eq("workbook_id", workbookId),
-    supabase.from("nudge_goals").select("id, name, target_amount, saved_amount, deadline").eq("workbook_id", workbookId),
+      .select("id, date, amount, type, category_id, goal_id, debt_id, note, created_by, period_id")
+      .eq("period_id", period.id),
+    supabase.from("nudge_goals").select("id, name, target_amount, saved_amount, deadline, created_by").eq("workbook_id", workbookId),
   ]);
+  for (const r of [incomeRes, catRes, limitRes, txRes, goalRes]) if (r.error) throw r.error;
 
-  if (catRes.error) throw catRes.error;
-  if (txRes.error) throw txRes.error;
-  if (goalRes.error) throw goalRes.error;
+  const limitByCat = new Map<string, number>(
+    (limitRes.data ?? []).map((r) => [r.category_id as string, num(r.budget_limit)]),
+  );
+  const categories: Category[] = (catRes.data ?? []).map((r) => ({
+    id: r.id as string,
+    name: r.name as string,
+    color: r.color as string,
+    budgetLimit: limitByCat.get(r.id as string) ?? 0,
+    createdBy: (r.created_by as string) ?? null,
+  }));
+  const transactions: Transaction[] = (txRes.data ?? []).map((r) => ({
+    id: r.id as string,
+    date: r.date as string,
+    amount: num(r.amount),
+    type: r.type === "income" ? "income" : "expense",
+    categoryId: (r.category_id as string) ?? null,
+    goalId: (r.goal_id as string) ?? null,
+    note: (r.note as string) ?? "",
+    createdBy: (r.created_by as string) ?? null,
+    periodId: (r.period_id as string) ?? null,
+  }));
+  const goals: Goal[] = (goalRes.data ?? []).map((r) => ({
+    id: r.id as string,
+    name: r.name as string,
+    targetAmount: num(r.target_amount),
+    savedAmount: num(r.saved_amount),
+    deadline: (r.deadline as string) ?? null,
+    createdBy: (r.created_by as string) ?? null,
+  }));
+  const memberIncomes: MemberIncome[] = (incomeRes.data ?? []).map((r) => ({
+    whopUserId: r.whop_user_id as string,
+    plannedAmount: num(r.planned_amount),
+  }));
 
-  const categories = (catRes.data ?? []).map(mapCategory);
-  const transactions = (txRes.data ?? []).map(mapTransaction);
-  const goals = (goalRes.data ?? []).map(mapGoal);
-
-  const base = defaultBudgetState();
   return {
-    incomePlan: num(wbRow.income_plan, base.incomePlan),
-    categories: categories.length > 0 ? categories : base.categories,
+    workbookId,
+    periodAnchorDay: anchorDay,
+    members,
+    period: { id: period.id, startDate: period.startDate, endDate: period.endDate, label: period.label },
+    editable,
+    memberIncomes,
+    categories,
     transactions,
     goals,
   };
-}
-
-export async function replaceBudgetStateInSupabase(
-  whopUserId: string,
-  state: BudgetState,
-): Promise<void> {
-  const supabase = getSupabaseAdmin();
-
-  const { error: profileErr } = await supabase.from("nudge_profiles").upsert(
-    { whop_user_id: whopUserId },
-    { onConflict: "whop_user_id" },
-  );
-  if (profileErr) throw profileErr;
-
-  const { data: wbUpsert, error: wbUpsertErr } = await supabase
-    .from("nudge_workbooks")
-    .upsert(
-      {
-        whop_user_id: whopUserId,
-        income_plan: state.incomePlan,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "whop_user_id" },
-    )
-    .select("id")
-    .single();
-
-  if (wbUpsertErr) throw wbUpsertErr;
-  const workbookId = wbUpsert.id as string;
-
-  const { error: delTx } = await supabase.from("nudge_transactions").delete().eq("workbook_id", workbookId);
-  if (delTx) throw delTx;
-  const { error: delGoals } = await supabase.from("nudge_goals").delete().eq("workbook_id", workbookId);
-  if (delGoals) throw delGoals;
-  const { error: delCat } = await supabase.from("nudge_categories").delete().eq("workbook_id", workbookId);
-  if (delCat) throw delCat;
-
-  if (state.categories.length > 0) {
-    const { error: catIns } = await supabase.from("nudge_categories").insert(
-      state.categories.map((c) => ({
-        id: c.id,
-        workbook_id: workbookId,
-        name: c.name,
-        budget_limit: c.budgetLimit,
-        color: c.color,
-      })),
-    );
-    if (catIns) throw catIns;
-  }
-
-  if (state.goals.length > 0) {
-    const { error: goalIns } = await supabase.from("nudge_goals").insert(
-      state.goals.map((g) => ({
-        id: g.id,
-        workbook_id: workbookId,
-        name: g.name,
-        target_amount: g.targetAmount,
-        saved_amount: g.savedAmount,
-        deadline: g.deadline,
-      })),
-    );
-    if (goalIns) throw goalIns;
-  }
-
-  if (state.transactions.length > 0) {
-    const { error: txIns } = await supabase.from("nudge_transactions").insert(
-      state.transactions.map((t) => ({
-        id: t.id,
-        workbook_id: workbookId,
-        date: t.date,
-        amount: t.amount,
-        type: t.type,
-        category_id: t.categoryId,
-        goal_id: t.goalId,
-        note: t.note,
-      })),
-    );
-    if (txIns) throw txIns;
-  }
 }
