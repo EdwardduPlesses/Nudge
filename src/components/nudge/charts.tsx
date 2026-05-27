@@ -119,7 +119,7 @@ export function CategoryPie({
           ))}
         </Pie>
         <Tooltip
-          formatter={(value) => [c.formatFromUsd(Number(value ?? 0)), "Spent"]}
+          formatter={(value) => [c.formatAmount(Number(value ?? 0)), "Spent"]}
           {...tooltip}
         />
       </PieChart>
@@ -133,7 +133,7 @@ export function WeekBarChart({ data }: { data: { day: string; total: number }[] 
   const tooltip = useChartTooltipTheme();
   const c = useCurrency();
   const axisTickUsd = (n: number) =>
-    formatUsdAsDisplayAxisTick(Number(n ?? 0), c.currency, c.rateForCurrency());
+    formatUsdAsDisplayAxisTick(Number(n ?? 0), c.currencyCode, 1);
   const { ref, width } = useTrackedChartWidth(288, 960);
 
   return (
@@ -147,10 +147,10 @@ export function WeekBarChart({ data }: { data: { day: string; total: number }[] 
         <YAxis
           tick={{ fontSize: 10 }}
           tickFormatter={(v) => axisTickUsd(Number(v ?? 0))}
-          width={c.currency === "USD" ? 48 : 62}
+          width={c.currencyCode === "USD" ? 48 : 62}
         />
         <Tooltip
-          formatter={(value) => [c.formatFromUsd(Number(value ?? 0)), "Spending"]}
+          formatter={(value) => [c.formatAmount(Number(value ?? 0)), "Spending"]}
           {...tooltip}
         />
         <Bar dataKey="total" radius={[6, 6, 0, 0]} fill="var(--gold-primary)" />

@@ -23,7 +23,7 @@ function SupportStat(props: { label: string; value: string }) {
 
 export function OverviewHero() {
   const { state } = useNudgeBudget();
-  const { formatFromUsd } = useCurrency();
+  const { formatAmount } = useCurrency();
 
   const snap = useMemo(() => computeMonthlyRemaining(state, new Date()), [state]);
   const v = useMemo(
@@ -50,10 +50,10 @@ export function OverviewHero() {
         return "You are on track.";
       }
       if (v.insight.kind === "exceed_by") {
-        return `You may overspend by ${formatFromUsd(v.insight.overAmountUsd)}.`;
+        return `You may overspend by ${formatAmount(v.insight.overAmountUsd)}.`;
       }
       if (v.insight.kind === "reduce_daily") {
-        return `Reduce daily spending by ${formatFromUsd(v.insight.reductionUsd)}.`;
+        return `Reduce daily spending by ${formatAmount(v.insight.reductionUsd)}.`;
       }
     }
     if (v.hasBudget && !v.hasExpenseData) {
@@ -66,7 +66,7 @@ export function OverviewHero() {
       return "Set category limits under Budgets to see spending pace.";
     }
     return null;
-  }, [formatFromUsd, v.hasBudget, v.hasExpenseData, v.insight, state.categories.length]);
+  }, [formatAmount, v.hasBudget, v.hasExpenseData, v.insight, state.categories.length]);
 
   const showSafeToSpend = safe != null && safe.perDayUsd > 0;
 
@@ -127,7 +127,7 @@ export function OverviewHero() {
                   fontVariationSettings: '"opsz" 144, "SOFT" 20',
                 }}
               >
-                {formatFromUsd(
+                {formatAmount(
                   snap.isOverBudget
                     ? Math.abs(snap.availableThisMonthUsd)
                     : snap.availableThisMonthUsd,
@@ -166,7 +166,7 @@ export function OverviewHero() {
                 letterSpacing: "-0.015em",
               }}
             >
-              {formatFromUsd(safe!.perDayUsd)}
+              {formatAmount(safe!.perDayUsd)}
             </p>
             <p className="mt-2" style={{ color: "var(--ink-muted)", fontSize: "0.85rem", lineHeight: 1.55 }}>
               You can spend this much per day for the rest of this period.
@@ -196,10 +196,10 @@ export function OverviewHero() {
         <SupportStat
           label="Income planned"
           value={
-            snap.needsIncomePlan ? "Not set" : `${formatFromUsd(snap.monthlyIncomeUsd)} / mo`
+            snap.needsIncomePlan ? "Not set" : `${formatAmount(snap.monthlyIncomeUsd)} / mo`
           }
         />
-        <SupportStat label="Spent so far" value={formatFromUsd(snap.currentMonthExpensesUsd)} />
+        <SupportStat label="Spent so far" value={formatAmount(snap.currentMonthExpensesUsd)} />
         <SupportStat label="Remaining" value={remainingSecondary} />
       </div>
     </section>

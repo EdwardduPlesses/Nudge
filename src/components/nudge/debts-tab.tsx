@@ -41,11 +41,7 @@ function DebtFormFields(props: {
   setApr: (v: string) => void;
   minPayment: string;
   setMinPayment: (v: string) => void;
-  amountApproxLabel: string;
-  currency: string;
-  rateLoading: boolean;
 }) {
-  const moneyDisabled = props.currency !== "USD" && props.rateLoading;
   return (
     <div className="mt-6 flex flex-col gap-5">
       <div>
@@ -60,7 +56,7 @@ function DebtFormFields(props: {
         </TextField.Root>
       </div>
       <div>
-        <span className="eyebrow mb-2 block">Balance {props.amountApproxLabel}</span>
+        <span className="eyebrow mb-2 block">Balance</span>
         <TextField.Root className="nudge-field w-full">
           <TextField.Input
             type="number"
@@ -68,7 +64,6 @@ function DebtFormFields(props: {
             min={0}
             step="any"
             autoComplete="off"
-            disabled={moneyDisabled}
             value={props.balance}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => props.setBalance(e.target.value)}
           />
@@ -90,7 +85,7 @@ function DebtFormFields(props: {
           </TextField.Root>
         </div>
         <div>
-          <span className="eyebrow mb-2 block">Min payment {props.amountApproxLabel}</span>
+          <span className="eyebrow mb-2 block">Min payment</span>
           <TextField.Root className="nudge-field w-full">
             <TextField.Input
               type="number"
@@ -98,7 +93,6 @@ function DebtFormFields(props: {
               min={0}
               step="any"
               autoComplete="off"
-              disabled={moneyDisabled}
               value={props.minPayment}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 props.setMinPayment(e.target.value)
@@ -148,7 +142,7 @@ function LogPaymentControl(props: { onLog: (displayAmount: number) => void; disa
 
 export function DebtsTab() {
   const c = useCurrency();
-  const fmt = c.formatFromUsd;
+  const fmt = c.formatAmount;
   const { state, addTransaction, whopUserToken } = useNudgeBudget();
 
   const [debts, setDebts] = useState<DebtRow[]>([]);
@@ -214,30 +208,27 @@ export function DebtsTab() {
     if (!editOpen || !editing) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setEditName(editing.name);
-    setEditBalance(String(c.usdAsDisplayAmount(editing.balance)));
+    setEditBalance(String(editing.balance));
     setEditApr(String(editing.apr));
-    setEditMinPayment(String(c.usdAsDisplayAmount(editing.minPayment)));
+    setEditMinPayment(String(editing.minPayment));
     setFormError(null);
-    // Only the conversion helper and active currency matter for repopulating the edit form;
-    // the full currency object identity changes too often to depend on directly.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editOpen, editing, c.currency, c.usdAsDisplayAmount]);
+  }, [editOpen, editing]);
 
   async function submitCreate() {
     setSaving(true);
     setFormError(null);
     try {
-      const bal = Number.parseFloat(balance);
-      const min = Number.parseFloat(minPayment);
+      const bal = c.parseAmount(balance);
+      const min = c.parseAmount(minPayment);
       const rate = Number.parseFloat(apr);
       const res = await authedFetch("/api/debts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim() || "Debt",
-          balance: Math.max(0, Number.isFinite(bal) ? c.displayAmountAsUsd(bal) : 0),
+          balance: Math.max(0, Number.isFinite(bal) ? bal : 0),
           apr: Math.max(0, Number.isFinite(rate) ? rate : 0),
-          minPayment: Math.max(0, Number.isFinite(min) ? c.displayAmountAsUsd(min) : 0),
+          minPayment: Math.max(0, Number.isFinite(min) ? min : 0),
         }),
       });
       const json = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
@@ -260,8 +251,8 @@ export function DebtsTab() {
     setSaving(true);
     setFormError(null);
     try {
-      const bal = Number.parseFloat(editBalance);
-      const min = Number.parseFloat(editMinPayment);
+      const bal = c.parseAmount(editBalance);
+      const min = c.parseAmount(editMinPayment);
       const rate = Number.parseFloat(editApr);
       const res = await authedFetch("/api/debts", {
         method: "PATCH",
@@ -269,9 +260,9 @@ export function DebtsTab() {
         body: JSON.stringify({
           id: editing.id,
           name: editName.trim() || editing.name,
-          balance: Math.max(0, Number.isFinite(bal) ? c.displayAmountAsUsd(bal) : 0),
+          balance: Math.max(0, Number.isFinite(bal) ? bal : 0),
           apr: Math.max(0, Number.isFinite(rate) ? rate : 0),
-          minPayment: Math.max(0, Number.isFinite(min) ? c.displayAmountAsUsd(min) : 0),
+          minPayment: Math.max(0, Number.isFinite(min) ? min : 0),
         }),
       });
       const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
@@ -304,11 +295,11 @@ export function DebtsTab() {
   }
 
   function logPayment(debtId: string, displayAmount: number) {
-    const usd = c.displayAmountAsUsd(displayAmount);
-    if (!Number.isFinite(usd) || usd <= 0) return;
+    const amt = displayAmount;
+    if (!Number.isFinite(amt) || amt <= 0) return;
     addTransaction({
       type: "expense",
-      amount: Math.max(0, usd),
+      amount: Math.max(0, amt),
       categoryId: null,
       goalId: null,
       debtId,
@@ -400,9 +391,6 @@ export function DebtsTab() {
               setApr={setApr}
               minPayment={minPayment}
               setMinPayment={setMinPayment}
-              amountApproxLabel={c.amountApproxLabel}
-              currency={c.currency}
-              rateLoading={c.rateLoading}
             />
 
             <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -461,9 +449,6 @@ export function DebtsTab() {
                 setApr={setEditApr}
                 minPayment={editMinPayment}
                 setMinPayment={setEditMinPayment}
-                amountApproxLabel={c.amountApproxLabel}
-                currency={c.currency}
-                rateLoading={c.rateLoading}
               />
 
               <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

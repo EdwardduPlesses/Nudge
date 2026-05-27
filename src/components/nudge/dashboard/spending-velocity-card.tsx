@@ -20,7 +20,7 @@ function toneToChipTone(t: "positive" | "warning" | "negative" | "neutral"): Chi
 
 export function SpendingVelocityCard() {
   const { state } = useNudgeBudget();
-  const { formatFromUsd } = useCurrency();
+  const { formatAmount } = useCurrency();
 
   const v = useMemo(
     () => computeMonthlySpendingVelocity(state.transactions, state.categories),
@@ -37,13 +37,13 @@ export function SpendingVelocityCard() {
       return "You are on track to stay within budget.";
     }
     if (v.insight.kind === "exceed_by") {
-      return `At this pace, you may exceed your budget by ${formatFromUsd(v.insight.overAmountUsd)}.`;
+      return `At this pace, you may exceed your budget by ${formatAmount(v.insight.overAmountUsd)}.`;
     }
     if (v.insight.kind === "reduce_daily") {
-      return `Reduce daily spending by ${formatFromUsd(v.insight.reductionUsd)} to stay on track.`;
+      return `Reduce daily spending by ${formatAmount(v.insight.reductionUsd)} to stay on track.`;
     }
     return null;
-  }, [formatFromUsd, v.hasBudget, v.insight]);
+  }, [formatAmount, v.hasBudget, v.insight]);
 
   const progressPct = v.hasBudget && v.budget > 0 ? (v.forecast / v.budget) * 100 : 0;
   const cappedProgressForBar =
@@ -89,7 +89,7 @@ export function SpendingVelocityCard() {
                   letterSpacing: "-0.015em",
                 }}
               >
-                {formatFromUsd(v.forecast)}
+                {formatAmount(v.forecast)}
               </span>
               <p style={{ color: "var(--ink-muted)", fontSize: "0.88rem", lineHeight: 1.5 }}>
                 Projected month-end spending at today&apos;s pace
@@ -126,10 +126,10 @@ export function SpendingVelocityCard() {
       ) : (
         <>
           <div className="mt-6 grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
-            <VelocityMetric label="Total spent (month)" value={formatFromUsd(v.totalSpent)} />
-            <VelocityMetric label="Daily average" value={formatFromUsd(v.dailyRate)} />
-            <VelocityMetric label="Forecasted total" value={formatFromUsd(v.forecast)} />
-            <VelocityMetric label="Total budget" value={formatFromUsd(v.budget)} />
+            <VelocityMetric label="Total spent (month)" value={formatAmount(v.totalSpent)} />
+            <VelocityMetric label="Daily average" value={formatAmount(v.dailyRate)} />
+            <VelocityMetric label="Forecasted total" value={formatAmount(v.forecast)} />
+            <VelocityMetric label="Total budget" value={formatAmount(v.budget)} />
           </div>
 
           {v.safeDailyUsd != null && Number.isFinite(v.safeDailyUsd) ? (
@@ -151,7 +151,7 @@ export function SpendingVelocityCard() {
                   letterSpacing: "-0.01em",
                 }}
               >
-                {formatFromUsd(v.safeDailyUsd)}
+                {formatAmount(v.safeDailyUsd)}
                 <span
                   className="ml-1"
                   style={{
@@ -176,7 +176,7 @@ export function SpendingVelocityCard() {
                   className="min-w-0 tabular text-right"
                   style={{ color: "var(--ink-muted)", fontSize: "0.82rem" }}
                 >
-                  {formatFromUsd(v.forecast)} / {formatFromUsd(v.budget)}
+                  {formatAmount(v.forecast)} / {formatAmount(v.budget)}
                 </span>
               </div>
               <Progress

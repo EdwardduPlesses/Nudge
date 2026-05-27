@@ -44,7 +44,7 @@ function barColor(status: CategoryHealthStatus | null): string {
 
 export function CategoryHealthList(props: { transactions?: Transaction[] }) {
   const { state } = useNudgeBudget();
-  const { formatFromUsd } = useCurrency();
+  const { formatAmount } = useCurrency();
 
   const rows = useMemo(
     () => computeCategoryHealthRows(state, new Date(), props.transactions),
@@ -158,12 +158,12 @@ export function CategoryHealthList(props: { transactions?: Transaction[] }) {
                   style={{ color: "var(--ink-muted)", fontSize: "0.82rem" }}
                 >
                   {row.percentUsed == null ? (
-                    <>{formatFromUsd(row.currentMonthCategorySpendUsd)} spent</>
+                    <>{formatAmount(row.currentMonthCategorySpendUsd)} spent</>
                   ) : (
                     <>
-                      {formatFromUsd(row.currentMonthCategorySpendUsd)} ·{" "}
+                      {formatAmount(row.currentMonthCategorySpendUsd)} ·{" "}
                       <span style={{ color: "var(--ink-faint)" }}>
-                        {formatFromUsd(row.categoryLimitUsd)} limit
+                        {formatAmount(row.categoryLimitUsd)} limit
                       </span>
                     </>
                   )}

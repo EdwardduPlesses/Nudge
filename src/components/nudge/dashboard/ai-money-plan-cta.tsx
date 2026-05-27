@@ -8,12 +8,12 @@ import { generateMoneyPlanPrompt } from "@/lib/ai/generate-money-plan-prompt";
 
 export function AiMoneyPlanCta() {
   const { state } = useNudgeBudget();
-  const { formatFromUsd } = useCurrency();
+  const { formatAmount } = useCurrency();
   const [open, setOpen] = useState(false);
 
   const prompt = useMemo(
-    () => generateMoneyPlanPrompt(state, formatFromUsd),
-    [formatFromUsd, state],
+    () => generateMoneyPlanPrompt(state, formatAmount),
+    [formatAmount, state],
   );
 
   return (

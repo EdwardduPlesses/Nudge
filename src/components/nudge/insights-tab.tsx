@@ -18,7 +18,7 @@ import {
 export function InsightsTab() {
   const { state } = useNudgeBudget();
   const c = useCurrency();
-  const fmt = c.formatFromUsd;
+  const fmt = c.formatAmount;
   const monthTx = useMemo(
     () => transactionsThisMonth(state.transactions, new Date()),
     [state.transactions],
@@ -72,14 +72,6 @@ export function InsightsTab() {
           <p className="mt-1" style={{ color: "var(--ink-muted)", fontSize: "0.85rem", lineHeight: 1.5 }}>
             Where money went this month
           </p>
-          {c.currency !== "USD" ? (
-            <p
-              className="mt-2"
-              style={{ color: "var(--ink-faint)", fontSize: "0.78rem", lineHeight: 1.4 }}
-            >
-              Chart uses USD internally; overview uses {c.currency}.
-            </p>
-          ) : null}
           <div className="mt-5">
             <CategoryPie data={pie} />
           </div>
@@ -96,14 +88,6 @@ export function InsightsTab() {
           <p className="mt-1" style={{ color: "var(--ink-muted)", fontSize: "0.85rem", lineHeight: 1.5 }}>
             Daily expense totals
           </p>
-          {c.currency !== "USD" ? (
-            <p
-              className="mt-2"
-              style={{ color: "var(--ink-faint)", fontSize: "0.78rem", lineHeight: 1.4 }}
-            >
-              Bars follow stored USD; axis uses {c.currency}.
-            </p>
-          ) : null}
           <div className="mt-5">
             <WeekBarChart data={weekBars} />
           </div>
