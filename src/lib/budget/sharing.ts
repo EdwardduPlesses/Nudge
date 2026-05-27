@@ -146,11 +146,14 @@ export async function listOutgoingInvites(workbookId: string): Promise<InviteRow
 
 async function loadInvite(by: { code?: string; id?: string }): Promise<InviteRow | null> {
   const supabase = getSupabaseAdmin();
-  let q = supabase.from("nudge_invites").select("*").eq("status", "pending");
+  let q = supabase.from("nudge_invites").select("*, expires_at").eq("status", "pending");
   q = by.code ? q.eq("code", by.code.trim().toUpperCase()) : q.eq("id", by.id!);
   const { data, error } = await q.maybeSingle();
   if (error) throw error;
-  return data ? mapInvite(data) : null;
+  if (!data) return null;
+  const expiresAt = (data as Record<string, unknown>).expires_at as string | null;
+  if (expiresAt && new Date(expiresAt).getTime() < Date.now()) return null;
+  return mapInvite(data);
 }
 
 /**
@@ -178,12 +181,12 @@ export async function acceptInvite(
     if ((await workbookMemberCount(invite.workbookId)) >= MAX_MEMBERS) {
       return { ok: false, error: "This budget already has two members." };
     }
-    // Remove joiner's existing memberships (set aside), then join inviter's workbook.
-    await supabase.from("nudge_workbook_members").delete().eq("whop_user_id", joinerUserId);
+    // Insert joiner into inviter's workbook FIRST (idempotent), then remove other memberships.
     const { error: insErr } = await supabase
       .from("nudge_workbook_members")
-      .insert({ workbook_id: invite.workbookId, whop_user_id: joinerUserId, role: "member" });
+      .upsert({ workbook_id: invite.workbookId, whop_user_id: joinerUserId, role: "member" }, { onConflict: "workbook_id,whop_user_id" });
     if (insErr) return { ok: false, error: insErr.message };
+    await supabase.from("nudge_workbook_members").delete().eq("whop_user_id", joinerUserId).neq("workbook_id", invite.workbookId);
   } else {
     // fresh: new workbook, both members, both old memberships removed.
     const { data: wb, error: wbErr } = await supabase
@@ -207,8 +210,20 @@ export async function acceptInvite(
   return { ok: true };
 }
 
-export async function setInviteStatus(inviteId: string, status: "declined" | "revoked"): Promise<void> {
+export async function respondToInvite(
+  inviteId: string,
+  action: "decline" | "revoke",
+  ctx: { userId: string; workbookId: string },
+): Promise<{ ok: boolean }> {
   const supabase = getSupabaseAdmin();
-  const { error } = await supabase.from("nudge_invites").update({ status }).eq("id", inviteId);
+  let q = supabase
+    .from("nudge_invites")
+    .update({ status: action === "decline" ? "declined" : "revoked" })
+    .eq("id", inviteId)
+    .eq("status", "pending");
+  // decline: only the invited user may decline; revoke: only the inviting workbook may revoke.
+  q = action === "decline" ? q.eq("invitee_user_id", ctx.userId) : q.eq("workbook_id", ctx.workbookId);
+  const { data, error } = await q.select("id");
   if (error) throw error;
+  return { ok: (data?.length ?? 0) > 0 };
 }

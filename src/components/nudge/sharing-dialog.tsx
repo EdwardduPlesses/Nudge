@@ -16,7 +16,7 @@ type InviteRow = {
   id: string;
   workbookId: string;
   inviterUserId: string;
-  code: string;
+  code: string | null;
   inviteeUsername: string | null;
   inviteeUserId: string | null;
   status: string;
@@ -405,7 +405,7 @@ export function SharingDialog(props: { open: boolean; onOpenChange: (open: boole
                           >
                             {inv.code}
                           </Text>
-                          <CopyButton value={inv.code} />
+                          <CopyButton value={inv.code ?? ""} />
                         </div>
                         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                           <Button
@@ -510,7 +510,7 @@ export function SharingDialog(props: { open: boolean; onOpenChange: (open: boole
                         >
                           {sentInvite.code}
                         </Text>
-                        <CopyButton value={sentInvite.code} />
+                        <CopyButton value={sentInvite.code ?? ""} />
                       </div>
                     </div>
                   ) : null}
