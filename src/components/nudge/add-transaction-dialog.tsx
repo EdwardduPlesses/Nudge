@@ -281,6 +281,7 @@ export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
       type,
       categoryId: cat,
       goalId: gid,
+      debtId: null,
       note: note.trim(),
     });
     reset();

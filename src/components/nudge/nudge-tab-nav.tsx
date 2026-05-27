@@ -7,7 +7,8 @@ export type NudgeTabKey =
   | "activity"
   | "insights"
   | "budgets"
-  | "goals";
+  | "goals"
+  | "debts";
 
 type TabSpec = {
   key: NudgeTabKey;
@@ -114,6 +115,28 @@ const TABS: TabSpec[] = [
         aria-hidden
       >
         <path d="M5 21V4M5 4h11l-2 4 2 4H5" />
+      </svg>
+    ),
+  },
+  {
+    key: "debts",
+    label: "Debts",
+    hint: "Payoff",
+    icon: ({ className }) => (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+        aria-hidden
+      >
+        <rect x="3" y="7" width="18" height="10" rx="2" />
+        <circle cx="12" cy="12" r="2.2" />
+        <path d="M3 11h2M19 13h2" />
+        <path d="M9 21l3-3 3 3" />
       </svg>
     ),
   },
