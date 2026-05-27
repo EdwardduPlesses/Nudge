@@ -4,7 +4,7 @@ import type { BudgetState } from "./types";
 
 function baseState(over: Partial<BudgetState>): BudgetState {
   return {
-    workbookId: "w", periodAnchorDay: 1, members: [],
+    workbookId: "w", periodAnchorDay: 1, baseCurrency: "USD", members: [],
     period: { id: "p", startDate: "2026-05-01", endDate: "2026-05-31", label: null },
     editable: true,
     memberIncomes: [{ whopUserId: "u", plannedAmount: 3100 }],

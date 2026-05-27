@@ -3,6 +3,7 @@ import type { BudgetState } from "./types";
 export const defaultBudgetState = (): BudgetState => ({
   workbookId: "",
   periodAnchorDay: 1,
+  baseCurrency: "USD",
   members: [],
   period: { id: "", startDate: "", endDate: "", label: null },
   editable: true,
