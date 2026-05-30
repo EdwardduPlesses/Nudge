@@ -86,29 +86,46 @@ export async function ensureMemberProfiles(workbookId: string): Promise<Enriched
     .order("joined_at", { ascending: true });
   if (error) throw error;
   const rows = data ?? [];
+  // Resolve any missing display names from Whop in PARALLEL (this sits on the primary
+  // read path; a serial per-member loop made every state fetch wait on N round-trips).
+  const resolvedNames = await Promise.all(
+    rows.map(async (r) => {
+      if (r.display_name) return null;
+      try {
+        const u = await whopsdk.users.retrieve(r.whop_user_id as string);
+        return u.username ?? u.name ?? null;
+      } catch {
+        return null;
+      }
+    }),
+  );
+
   const out: EnrichedMember[] = [];
+  const updates: PromiseLike<unknown>[] = [];
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
     let displayName: string | null = (r.display_name as string) ?? null;
     let color: string | null = (r.color as string) ?? null;
     const patch: Record<string, unknown> = {};
-    if (!displayName) {
-      try {
-        const u = await whopsdk.users.retrieve(r.whop_user_id as string);
-        displayName = u.username ?? u.name ?? null;
-      } catch {
-        displayName = null;
-      }
-      if (displayName) patch.display_name = displayName;
+    if (!displayName && resolvedNames[i]) {
+      displayName = resolvedNames[i];
+      patch.display_name = displayName;
     }
     if (!color) {
       color = MEMBER_PALETTE[i % MEMBER_PALETTE.length];
       patch.color = color;
     }
     if (Object.keys(patch).length > 0) {
-      await supabase.from("nudge_workbook_members").update(patch).eq("workbook_id", workbookId).eq("whop_user_id", r.whop_user_id as string);
+      updates.push(
+        supabase
+          .from("nudge_workbook_members")
+          .update(patch)
+          .eq("workbook_id", workbookId)
+          .eq("whop_user_id", r.whop_user_id as string),
+      );
     }
     out.push({ whopUserId: r.whop_user_id as string, role: (r.role as string) ?? "member", displayName, color: color ?? MEMBER_PALETTE[i % MEMBER_PALETTE.length] });
   }
+  if (updates.length > 0) await Promise.all(updates);
   return out;
 }

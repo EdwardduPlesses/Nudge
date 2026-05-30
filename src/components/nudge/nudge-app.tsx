@@ -39,7 +39,7 @@ function SyncErrorToast() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4"
+      className="nudge-sync-toast fixed inset-x-0 bottom-6 z-50 flex justify-center px-4"
     >
       <div className="atelier-card-elevated flex max-w-md items-center gap-3 rounded-full py-2.5 pl-4 pr-2.5 text-sm shadow-lg">
         <span aria-hidden style={{ color: "var(--gold)" }}>
