@@ -126,7 +126,7 @@ export function BudgetsTab() {
     [state.transactions, state.period],
   );
   const spent = useMemo(() => sumExpenses(periodTx), [periodTx]);
-  const totalBudget = totalCategoryBudget(state.categories);
+  const totalBudget = useMemo(() => totalCategoryBudget(state.categories), [state.categories]);
   const budgetUsedRatio =
     totalBudget > 0 ? Math.min(1, spent / totalBudget) : spent > 0 ? 1 : 0;
   const unallocated = householdTotal - totalBudget;

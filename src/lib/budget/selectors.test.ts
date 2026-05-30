@@ -55,4 +55,5 @@ test("totalCategoryBudget sums category caps", () => {
 test("totalCategoryBudget ignores non-finite caps and returns 0 for empty", () => {
   expect(totalCategoryBudget([])).toBe(0);
   expect(totalCategoryBudget([{ budgetLimit: Number.NaN }, { budgetLimit: 100 }])).toBe(100);
+  expect(totalCategoryBudget([{ budgetLimit: Infinity }])).toBe(0);
 });
