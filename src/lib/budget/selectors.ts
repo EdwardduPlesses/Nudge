@@ -5,6 +5,14 @@ export function totalPlannedIncome(s: Pick<BudgetState, "memberIncomes">): numbe
   return s.memberIncomes.reduce((sum, i) => sum + i.plannedAmount, 0);
 }
 
+/** Sum of all category monthly caps (planned spending). */
+export function totalCategoryBudget(categories: Pick<Category, "budgetLimit">[]): number {
+  return categories.reduce(
+    (s, c) => s + (Number.isFinite(c.budgetLimit) ? c.budgetLimit : 0),
+    0,
+  );
+}
+
 export function transactionsByActor(
   txs: Transaction[],
   filter: { mode: "all" | "user"; userId?: string },

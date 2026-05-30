@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   const body = parsed.body;
   try {
     const item = await createRecurring(workbookId, userId, body);
-    await logActivity(workbookId, userId, "created", "recurring", item.id, "added a recurring expense");
+    await logActivity(workbookId, userId, "created", "recurring", item.id, `added a recurring ${item.type}`);
     return NextResponse.json({ item });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

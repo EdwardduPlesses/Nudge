@@ -229,7 +229,9 @@ export function ActivityTab() {
       {/* ───── Recent changes ───── */}
       <section aria-label="Recent changes" className="atelier-card p-4 sm:p-5">
         <span className="eyebrow mb-3 block">Recent changes</span>
-        <ActivityFeed filterUserId={whoFilter === "all" ? undefined : whoFilter} />
+        <div className="max-h-56 overflow-y-auto overscroll-contain pr-1">
+          <ActivityFeed filterUserId={whoFilter === "all" ? undefined : whoFilter} />
+        </div>
       </section>
 
       {/* ───── List ───── */}

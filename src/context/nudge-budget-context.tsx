@@ -43,6 +43,8 @@ type NudgeBudgetContextValue = {
   /** Set when an optimistic change was rolled back after a failed save; null when clear. */
   syncError: string | null;
   clearSyncError: () => void;
+  /** Re-fetch authoritative budget state for the period in view (e.g. after a server-side mutation). */
+  refresh: () => Promise<void>;
 };
 
 const Ctx = createContext<NudgeBudgetContextValue | null>(null);
@@ -446,6 +448,7 @@ export function NudgeBudgetProvider(props: {
       setPeriodAnchorDay,
       syncError,
       clearSyncError,
+      refresh: resync,
     }),
     [
       state,
@@ -470,6 +473,7 @@ export function NudgeBudgetProvider(props: {
       setPeriodAnchorDay,
       syncError,
       clearSyncError,
+      resync,
     ],
   );
 

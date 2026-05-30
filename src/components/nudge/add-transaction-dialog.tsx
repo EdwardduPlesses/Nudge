@@ -447,6 +447,7 @@ export function EditTransactionDialog(props: {
   const [goalId, setGoalId] = useState("");
   const [debtId, setDebtId] = useState("");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [recurringStatus, setRecurringStatus] = useState<"idle" | "saving" | "done">("idle");
   const fetchedDebtOptions = useDebtOptions(props.open, whopUserToken);
 
   const categoryOptions = useMemo(
@@ -487,6 +488,7 @@ export function EditTransactionDialog(props: {
     const fb = state.categories[0]?.id ?? "";
     setAmount(String(tx.amount));
     setAmountError(null);
+    setRecurringStatus("idle");
     setNote(tx.note);
     setDate(format(parseISO(tx.date), "yyyy-MM-dd"));
 
@@ -532,6 +534,46 @@ export function EditTransactionDialog(props: {
       setGoalId(goalOptions[0]?.value ?? "");
     }
   }, [entryType, goalId, goalOptions]);
+
+  async function makeRecurring() {
+    const amt = c.parseAmount(amount);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      setAmountError("Enter a valid amount");
+      return;
+    }
+    const body: {
+      type: "income" | "expense";
+      amount: number;
+      timing: "start";
+      categoryId?: string;
+      note?: string;
+    } = {
+      type: entryType === "income" ? "income" : "expense",
+      amount: amt,
+      timing: "start",
+    };
+    if (entryType === "expense" && categoryId) body.categoryId = categoryId;
+    if (note.trim()) body.note = note.trim();
+
+    setAmountError(null);
+    setRecurringStatus("saving");
+    try {
+      const res = await fetch(
+        "/api/recurring",
+        nudgeBudgetFetchInit(whopUserToken, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+      );
+      setRecurringStatus(res.ok ? "done" : "idle");
+      if (!res.ok) setAmountError("Could not make this recurring.");
+    } catch {
+      setRecurringStatus("idle");
+      setAmountError("Could not make this recurring.");
+    }
+  }
 
   function submit() {
     if (!tx) return;
@@ -628,6 +670,36 @@ export function EditTransactionDialog(props: {
             jpy={c.currencyCode === "JPY"}
             amountError={amountError}
           />
+
+          {entryType === "income" || entryType === "expense" ? (
+            <div className="mt-6 flex items-center justify-between gap-3 rounded-xl border border-gray-600/15 bg-gray-900/3 p-3 dark:bg-white/4">
+              <div className="min-w-0">
+                <Text size="2" weight="medium" className="block text-foreground/80">
+                  Repeat every period
+                </Text>
+                <Text size="1" color="gray" className="leading-snug">
+                  Adds this as a recurring item at the start of each period.
+                </Text>
+              </div>
+              {recurringStatus === "done" ? (
+                <Text size="2" color="green" className="shrink-0">
+                  Added to Recurring ✓
+                </Text>
+              ) : (
+                <Button
+                  type="button"
+                  variant="soft"
+                  color="gold"
+                  size="2"
+                  disabled={recurringStatus === "saving"}
+                  className="shrink-0"
+                  onClick={() => void makeRecurring()}
+                >
+                  {recurringStatus === "saving" ? "Adding…" : "Make recurring"}
+                </Button>
+              )}
+            </div>
+          ) : null}
 
           <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Dialog.Close>
