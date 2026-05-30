@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { safeToSpendToday } from "./selectors";
+import { safeToSpendToday, totalCategoryBudget } from "./selectors";
 import type { BudgetState } from "./types";
 
 function baseState(over: Partial<BudgetState>): BudgetState {
@@ -40,4 +40,19 @@ test("safeToSpendToday returns null for a past (non-editable) period", () => {
 
 test("safeToSpendToday returns null when no income is planned", () => {
   expect(safeToSpendToday(baseState({ memberIncomes: [] }), new Date("2026-05-10T12:00:00Z"))).toBeNull();
+});
+
+test("totalCategoryBudget sums category caps", () => {
+  expect(
+    totalCategoryBudget([
+      { budgetLimit: 200 },
+      { budgetLimit: 50.5 },
+      { budgetLimit: 0 },
+    ]),
+  ).toBe(250.5);
+});
+
+test("totalCategoryBudget ignores non-finite caps and returns 0 for empty", () => {
+  expect(totalCategoryBudget([])).toBe(0);
+  expect(totalCategoryBudget([{ budgetLimit: Number.NaN }, { budgetLimit: 100 }])).toBe(100);
 });

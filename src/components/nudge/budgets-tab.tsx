@@ -8,6 +8,7 @@ import {
   categorySpendInPeriod,
   memberLabel,
   sumExpenses,
+  totalCategoryBudget,
   totalPlannedIncome,
   transactionsInPeriod,
 } from "@/lib/budget/selectors";
@@ -125,9 +126,10 @@ export function BudgetsTab() {
     [state.transactions, state.period],
   );
   const spent = useMemo(() => sumExpenses(periodTx), [periodTx]);
-  const totalBudget = state.categories.reduce((s, cat) => s + cat.budgetLimit, 0);
+  const totalBudget = totalCategoryBudget(state.categories);
   const budgetUsedRatio =
     totalBudget > 0 ? Math.min(1, spent / totalBudget) : spent > 0 ? 1 : 0;
+  const unallocated = householdTotal - totalBudget;
 
   return (
     <div className="flex flex-col gap-8">
@@ -272,6 +274,40 @@ export function BudgetsTab() {
             </span>
           </div>
         )}
+
+        <div
+          className="mt-6 flex flex-col gap-2 pt-4"
+          style={{ borderTop: "1px solid var(--hairline)" }}
+        >
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="eyebrow">Planned income</span>
+            <span className="tabular" style={{ color: "var(--ink-soft)", fontSize: "0.95rem" }}>
+              {fmt(householdTotal)}
+            </span>
+          </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="eyebrow">Total budgeted</span>
+            <span className="tabular" style={{ color: "var(--ink-soft)", fontSize: "0.95rem" }}>
+              {fmt(totalBudget)}
+            </span>
+          </div>
+          <div
+            className="flex items-baseline justify-between gap-4 pt-2"
+            style={{ borderTop: "1px solid var(--hairline)" }}
+          >
+            <span className="eyebrow">{unallocated >= 0 ? "Unallocated" : "Over budget"}</span>
+            <span
+              className="heading-display tabular"
+              style={{
+                color: unallocated >= 0 ? "var(--ink)" : "var(--tone-overdue)",
+                fontSize: "1.05rem",
+                lineHeight: 1.2,
+              }}
+            >
+              {unallocated >= 0 ? fmt(unallocated) : `Over by ${fmt(Math.abs(unallocated))}`}
+            </span>
+          </div>
+        </div>
 
         <div className="mt-6">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
