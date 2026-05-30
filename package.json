@@ -11,7 +11,10 @@
     "db:push": "npx --yes supabase db push",
     "db:login": "npx --yes supabase login",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.1",
@@ -25,6 +28,7 @@
     "recharts": "^3.8.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
