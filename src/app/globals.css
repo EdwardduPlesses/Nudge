@@ -489,10 +489,10 @@ body::before {
 }
 
 .atelier-stat-value {
-  font-family: var(--font-fraunces), ui-serif, Georgia, serif;
+  font-family: var(--font-manrope), ui-sans-serif, system-ui, -apple-system, sans-serif;
   font-optical-sizing: auto;
-  font-variation-settings: "opsz" 96, "SOFT" 20;
-  font-weight: 400;
+  font-variation-settings: normal;
+  font-weight: 600;
   font-size: clamp(1.65rem, 4.4vw, 2.1rem);
   line-height: 1.05;
   letter-spacing: -0.01em;
@@ -1139,4 +1139,14 @@ body::before {
   font-variation-settings: "opsz" 96, "SOFT" 25;
   font-weight: 500;
   letter-spacing: -0.012em;
+}
+
+/* Amounts / figures: a display heading that is also `.tabular` is a monetary value.
+   Render those in Manrope (tabular) for legibility — Fraunces stays for prose headings. */
+.fui-Heading.heading-display.tabular,
+.heading-display.tabular {
+  font-family: var(--font-manrope), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-optical-sizing: auto;
+  font-variation-settings: normal;
+  letter-spacing: -0.015em;
 }

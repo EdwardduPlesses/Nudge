@@ -177,15 +177,16 @@ export function OverviewHero() {
 
       {insightLine ? (
         <p
-          className="mt-7 max-w-3xl italic"
+          className="mt-7 max-w-3xl"
           style={{
             color: "var(--ink-soft)",
-            fontFamily: "var(--font-fraunces), serif",
-            fontSize: "1rem",
-            lineHeight: 1.6,
+            fontFamily: "var(--font-manrope), sans-serif",
+            fontSize: "0.98rem",
+            fontWeight: 500,
+            lineHeight: 1.55,
           }}
         >
-          “{insightLine}”
+          {insightLine}
         </p>
       ) : null}
 

@@ -14,8 +14,8 @@ test("mobile: app loads with the bottom nav, FAB, and is navigable", async ({ pa
   const bottomNav = page.getByRole("tablist", { name: "Sections" });
   await expect(bottomNav).toBeVisible();
 
-  // Quick-add FAB is present and tappable (not covered).
-  const fab = page.getByRole("button", { name: "Quick add expense" });
+  // Add-transaction FAB is present and tappable (not covered).
+  const fab = page.getByRole("button", { name: "Add transaction" });
   await expect(fab).toBeVisible();
   await fab.click();
   await expect(page.getByRole("dialog")).toBeVisible();
