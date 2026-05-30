@@ -58,6 +58,7 @@ export function ActivityTab() {
   const c = useCurrency();
   const fmt = c.formatAmount;
   const { state, removeTransaction } = useNudgeBudget();
+  const editable = state.editable;
   const [typeFilter, setTypeFilter] = useState<ActivityFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [whoFilter, setWhoFilter] = useState<string>("all");
@@ -129,20 +130,22 @@ export function ActivityTab() {
           </p>
         </div>
         <div className="w-full shrink-0 lg:w-auto">
-          <AddTransactionDialog
-            trigger={
-              <button
-                type="button"
-                className="atelier-btn-gold w-full lg:w-auto"
-                aria-label="Add income or expense"
-              >
-                <span aria-hidden style={{ fontSize: "1rem", lineHeight: 1 }}>
-                  ✦
-                </span>
-                Add transaction
-              </button>
-            }
-          />
+          {editable ? (
+            <AddTransactionDialog
+              trigger={
+                <button
+                  type="button"
+                  className="atelier-btn-gold w-full lg:w-auto"
+                  aria-label="Add income or expense"
+                >
+                  <span aria-hidden style={{ fontSize: "1rem", lineHeight: 1 }}>
+                    ✦
+                  </span>
+                  Add transaction
+                </button>
+              }
+            />
+          ) : null}
         </div>
       </header>
 
@@ -340,6 +343,7 @@ export function ActivityTab() {
                           {fmt(t.amount)}
                         </span>
                         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                          {editable ? (
                           <Button
                             size="2"
                             variant="soft"
@@ -352,6 +356,8 @@ export function ActivityTab() {
                           >
                             Edit
                           </Button>
+                          ) : null}
+                          {editable ? (
                           <ConfirmButton
                             title="Remove transaction?"
                             description="This permanently deletes the entry and updates your totals."
@@ -368,6 +374,7 @@ export function ActivityTab() {
                               </Button>
                             }
                           />
+                          ) : null}
                         </div>
                       </div>
                     </div>

@@ -115,16 +115,18 @@ export function DashboardTab() {
         </div>
         <div className="flex w-full shrink-0 flex-col gap-2.5 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
           <AiMoneyPlanCta />
-          <AddTransactionDialog
-            trigger={
-              <button type="button" className="atelier-btn-gold w-full sm:w-auto" aria-label="Add income or expense">
-                <span aria-hidden style={{ fontSize: "1rem", lineHeight: 1 }}>
-                  ✦
-                </span>
-                Add transaction
-              </button>
-            }
-          />
+          {state.editable ? (
+            <AddTransactionDialog
+              trigger={
+                <button type="button" className="atelier-btn-gold w-full sm:w-auto" aria-label="Add income or expense">
+                  <span aria-hidden style={{ fontSize: "1rem", lineHeight: 1 }}>
+                    ✦
+                  </span>
+                  Add transaction
+                </button>
+              }
+            />
+          ) : null}
         </div>
       </header>
 

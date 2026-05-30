@@ -60,6 +60,7 @@ function SyncErrorToast() {
 }
 
 export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
+  const { state } = useNudgeBudget();
   const [activeTop, setActiveTop] = useState<NudgeTopKey | "settings">("overview");
   const [activeLeaf, setActiveLeaf] = useState<NudgeLeafKey>("overview");
   const selectTop = (top: NudgeTopKey) => {
@@ -245,7 +246,9 @@ export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
         onChange={selectTop}
       />
 
-      <QuickAddExpenseButton variant="fab" />
+      {/* The quick-add FAB only does anything in the editable (current) period —
+          hide it when viewing a read-only past period so it can't silently no-op. */}
+      {state.editable ? <QuickAddExpenseButton variant="fab" /> : null}
       <SyncErrorToast />
     </>
   );
