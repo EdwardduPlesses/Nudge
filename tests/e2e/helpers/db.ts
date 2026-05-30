@@ -65,6 +65,41 @@ export async function setAnchorDay(day: number, userId: string = TEST_USER_ID): 
   if (error) throw error;
 }
 
+/** Insert a debt directly (the workbook must already exist). Returns the debt id. */
+export async function seedDebt(
+  name: string,
+  balance: number,
+  userId: string = TEST_USER_ID,
+): Promise<string> {
+  const sb = admin();
+  const wbId = await getTestWorkbookId(userId);
+  if (!wbId) throw new Error("seedDebt: workbook does not exist yet — load /app first");
+  const id = globalThis.crypto.randomUUID();
+  const { error } = await sb
+    .from("nudge_debts")
+    .insert({ id, workbook_id: wbId, name, balance, apr: 0, min_payment: 0 });
+  if (error) throw error;
+  return id;
+}
+
+/** Sum of expense payments linked to a debt. */
+export async function debtPaymentTotal(
+  debtId: string,
+  userId: string = TEST_USER_ID,
+): Promise<number> {
+  const sb = admin();
+  const wbId = await getTestWorkbookId(userId);
+  if (!wbId) return 0;
+  const { data } = await sb
+    .from("nudge_transactions")
+    .select("amount, type")
+    .eq("workbook_id", wbId)
+    .eq("debt_id", debtId);
+  return (data ?? [])
+    .filter((r) => r.type === "expense")
+    .reduce((s, r) => s + Number(r.amount), 0);
+}
+
 /** Read the workbook's base currency (null if no workbook yet). */
 export async function getBaseCurrency(userId: string = TEST_USER_ID): Promise<string | null> {
   const sb = admin();

@@ -5,11 +5,36 @@ import { format, parseISO } from "date-fns";
 import { Button, Dialog, RadioGroup, Select, Text, TextField } from "frosted-ui";
 import { NudgeDatePicker } from "@/components/nudge/nudge-date-picker";
 import { useCurrency } from "@/context/currency-context";
-import { useNudgeBudget } from "@/context/nudge-budget-context";
+import { nudgeBudgetFetchInit, useNudgeBudget } from "@/context/nudge-budget-context";
 import type { Transaction } from "@/lib/budget/types";
 
-type TransactionEntryType = "expense" | "income" | "goal";
+/** Fetch the workbook's debts for the Debt-payment option (debts live outside budget state). */
+function useDebtOptions(open: boolean, whopUserToken: string | null): DebtOption[] {
+  const [debts, setDebts] = useState<DebtOption[]>([]);
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/debts", nudgeBudgetFetchInit(whopUserToken, { credentials: "include" }));
+        if (!res.ok) return;
+        const data = (await res.json()) as { debts?: { id: string; name: string }[] };
+        if (!cancelled) setDebts((data.debts ?? []).map((d) => ({ value: d.id, label: d.name || "Debt" })));
+      } catch {
+        /* leave empty — the Debt option just won't appear */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, whopUserToken]);
+  return debts;
+}
+
+type TransactionEntryType = "expense" | "income" | "goal" | "debt";
 type GoalFlow = "to_goal" | "from_goal";
+
+type DebtOption = { value: string; label: string };
 
 function transactionDateIsoUtc(dateStr: string): string {
   const t = dateStr.trim();
@@ -34,6 +59,9 @@ function TxnFormFields(props: {
   goalOptions: { value: string; label: string }[];
   goalId: string;
   setGoalId: (v: string) => void;
+  debtId: string;
+  setDebtId: (v: string) => void;
+  debtOptions: DebtOption[];
   jpy: boolean;
   amountError?: string | null;
 }) {
@@ -70,9 +98,38 @@ function TxnFormFields(props: {
                 <Text size="2">Goal</Text>
               </label>
             ) : null}
+            {props.debtOptions.length > 0 ? (
+              <label
+                className="flex min-h-11 min-w-[calc(33%-0.375rem)] flex-1 cursor-pointer items-center gap-2.5 rounded-xl border border-gray-600/15 bg-gray-900/3 px-3 py-2.5 dark:bg-white/4 sm:min-w-0 sm:flex-none"
+              >
+                <RadioGroup.Item value="debt" />
+                <Text size="2">Debt payment</Text>
+              </label>
+            ) : null}
           </div>
         </RadioGroup.Root>
       </div>
+
+      {props.entryType === "debt" ? (
+        <div>
+          <Text size="2" weight="medium" className="mb-2 block text-foreground/80">
+            Debt
+          </Text>
+          <Select.Root value={props.debtId || props.debtOptions[0]?.value} onValueChange={props.setDebtId}>
+            <Select.Trigger placeholder="Choose debt" aria-label="Debt" className="min-h-11 w-full" />
+            <Select.Content>
+              {props.debtOptions.map((opt) => (
+                <Select.Item key={opt.value} value={opt.value}>
+                  {opt.label}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Root>
+          <Text size="1" color="gray" className="mt-2 leading-snug">
+            Logged as an expense that reduces this debt&apos;s remaining balance.
+          </Text>
+        </div>
+      ) : null}
 
       {props.entryType === "goal" ? (
         <div>
@@ -190,7 +247,7 @@ function TxnFormFields(props: {
 }
 
 export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
-  const { state, addTransaction } = useNudgeBudget();
+  const { state, addTransaction, whopUserToken } = useNudgeBudget();
   const c = useCurrency();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
@@ -200,7 +257,9 @@ export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
   const [goalFlow, setGoalFlow] = useState<GoalFlow>("to_goal");
   const [categoryId, setCategoryId] = useState<string>(state.categories[0]?.id ?? "");
   const [goalId, setGoalId] = useState("");
+  const [debtId, setDebtId] = useState("");
   const [date, setDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
+  const debtOptions = useDebtOptions(open, whopUserToken);
 
   const categoryOptions = useMemo(
     () =>
@@ -241,6 +300,7 @@ export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
     setGoalFlow("to_goal");
     setCategoryId(state.categories[0]?.id ?? "");
     setGoalId(goalOptions[0]?.value ?? "");
+    setDebtId("");
     setDate(format(new Date(), "yyyy-MM-dd"));
   }
 
@@ -262,8 +322,9 @@ export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
     }
 
     let type: "income" | "expense";
-    let cat: string | null;
-    let gid: string | null;
+    let cat: string | null = null;
+    let gid: string | null = null;
+    let did: string | null = null;
 
     if (entryType === "goal") {
       const pick = goalId.trim() || goalOptions[0]?.value || "";
@@ -272,18 +333,21 @@ export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
         return;
       }
       gid = pick;
-      if (goalFlow === "to_goal") {
-        type = "expense";
-        cat = null;
-      } else {
-        type = "income";
-        cat = null;
+      type = goalFlow === "to_goal" ? "expense" : "income";
+    } else if (entryType === "debt") {
+      const pick = debtId.trim() || debtOptions[0]?.value || "";
+      if (!pick) {
+        setAmountError("Add a debt under Money goals → Debts first");
+        return;
       }
+      did = pick;
+      type = "expense";
+    } else if (entryType === "income") {
+      type = "income";
     } else {
-      type = entryType;
-      gid = null;
-      cat = type === "expense" ? categoryId || state.categories[0]?.id || null : null;
-      if (type === "expense" && !cat) {
+      type = "expense";
+      cat = categoryId || state.categories[0]?.id || null;
+      if (!cat) {
         setAmountError("Add a category under Budgets first");
         return;
       }
@@ -295,8 +359,8 @@ export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
       type,
       categoryId: cat,
       goalId: gid,
-      debtId: null,
-      note: note.trim(),
+      debtId: did,
+      note: note.trim() || (entryType === "debt" ? "Debt payment" : ""),
     });
     reset();
     setOpen(false);
@@ -344,6 +408,9 @@ export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
             goalOptions={goalOptions}
             goalId={goalId}
             setGoalId={setGoalId}
+            debtId={debtId}
+            setDebtId={setDebtId}
+            debtOptions={debtOptions}
             jpy={c.currencyCode === "JPY"}
             amountError={amountError}
           />
@@ -369,7 +436,7 @@ export function EditTransactionDialog(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { state, updateTransaction } = useNudgeBudget();
+  const { state, updateTransaction, whopUserToken } = useNudgeBudget();
   const c = useCurrency();
   const [amount, setAmount] = useState("");
   const [amountError, setAmountError] = useState<string | null>(null);
@@ -378,7 +445,9 @@ export function EditTransactionDialog(props: {
   const [goalFlow, setGoalFlow] = useState<GoalFlow>("to_goal");
   const [categoryId, setCategoryId] = useState("");
   const [goalId, setGoalId] = useState("");
+  const [debtId, setDebtId] = useState("");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const fetchedDebtOptions = useDebtOptions(props.open, whopUserToken);
 
   const categoryOptions = useMemo(
     () =>
@@ -403,6 +472,16 @@ export function EditTransactionDialog(props: {
     return base;
   }, [state.goals, tx?.goalId]);
 
+  // Keep the current row's debt selectable even if it was deleted from the list.
+  const debtOptions = useMemo(() => {
+    const base = [...fetchedDebtOptions];
+    const did = tx?.debtId;
+    if (did && !base.some((o) => o.value === did)) {
+      return [...base, { value: did, label: "Linked debt" }];
+    }
+    return base;
+  }, [fetchedDebtOptions, tx?.debtId]);
+
   useEffect(() => {
     if (!props.open || !tx) return;
     const fb = state.categories[0]?.id ?? "";
@@ -411,7 +490,13 @@ export function EditTransactionDialog(props: {
     setNote(tx.note);
     setDate(format(parseISO(tx.date), "yyyy-MM-dd"));
 
-    if (tx.goalId) {
+    if (tx.debtId) {
+      setEntryType("debt");
+      setDebtId(tx.debtId);
+      setGoalFlow("to_goal");
+      setGoalId("");
+      setCategoryId(tx.categoryId ?? fb);
+    } else if (tx.goalId) {
       setEntryType("goal");
       setGoalFlow(tx.type === "expense" ? "to_goal" : "from_goal");
       setGoalId(tx.goalId);
@@ -436,6 +521,9 @@ export function EditTransactionDialog(props: {
     if (next !== "goal") {
       setGoalId("");
     }
+    if (next === "debt") {
+      setDebtId((prev) => prev || debtOptions[0]?.value || "");
+    }
   }
 
   useEffect(() => {
@@ -454,8 +542,9 @@ export function EditTransactionDialog(props: {
     }
 
     let type: "income" | "expense";
-    let cat: string | null;
-    let gid: string | null;
+    let cat: string | null = null;
+    let gid: string | null = null;
+    let did: string | null = null;
 
     if (entryType === "goal") {
       const pick = goalId.trim() || goalOptions[0]?.value || "";
@@ -464,18 +553,21 @@ export function EditTransactionDialog(props: {
         return;
       }
       gid = pick;
-      if (goalFlow === "to_goal") {
-        type = "expense";
-        cat = null;
-      } else {
-        type = "income";
-        cat = null;
+      type = goalFlow === "to_goal" ? "expense" : "income";
+    } else if (entryType === "debt") {
+      const pick = debtId.trim() || debtOptions[0]?.value || "";
+      if (!pick) {
+        setAmountError("Add a debt under Money goals → Debts first");
+        return;
       }
+      did = pick;
+      type = "expense";
+    } else if (entryType === "income") {
+      type = "income";
     } else {
-      type = entryType;
-      gid = null;
-      cat = type === "expense" ? categoryId || state.categories[0]?.id || null : null;
-      if (type === "expense" && !cat) {
+      type = "expense";
+      cat = categoryId || state.categories[0]?.id || null;
+      if (!cat) {
         setAmountError("Add a category under Budgets first");
         return;
       }
@@ -487,6 +579,7 @@ export function EditTransactionDialog(props: {
       type,
       categoryId: cat,
       goalId: gid,
+      debtId: did,
       note: note.trim(),
     });
     props.onOpenChange(false);
@@ -529,6 +622,9 @@ export function EditTransactionDialog(props: {
             goalOptions={goalOptions}
             goalId={goalId}
             setGoalId={setGoalId}
+            debtId={debtId}
+            setDebtId={setDebtId}
+            debtOptions={debtOptions}
             jpy={c.currencyCode === "JPY"}
             amountError={amountError}
           />

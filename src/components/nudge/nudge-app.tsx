@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
 import { ActivityTab } from "@/components/nudge/activity-tab";
-import { QuickAddExpenseButton } from "@/components/nudge/quick-add-expense-button";
+import { AddTransactionDialog } from "@/components/nudge/add-transaction-dialog";
 import { BudgetsTab } from "@/components/nudge/budgets-tab";
 import { DashboardTab } from "@/components/nudge/dashboard-tab";
 import { DebtsTab } from "@/components/nudge/debts-tab";
@@ -246,9 +246,28 @@ export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
         onChange={selectTop}
       />
 
-      {/* The quick-add FAB only does anything in the editable (current) period —
-          hide it when viewing a read-only past period so it can't silently no-op. */}
-      {state.editable ? <QuickAddExpenseButton variant="fab" /> : null}
+      {/* Single add-transaction entry point. The FAB opens the full dialog (expense,
+          income, goal, debt payment). Hidden in a read-only past period. */}
+      {state.editable ? (
+        <AddTransactionDialog
+          trigger={
+            <button type="button" className="atelier-fab" aria-label="Add transaction">
+              <svg
+                aria-hidden
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.25"
+                strokeLinecap="round"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
+          }
+        />
+      ) : null}
       <SyncErrorToast />
     </>
   );
