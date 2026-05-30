@@ -2,7 +2,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 /** Sentinel stored in `day_of_period` to mean "fire at period end". The column predates the
  *  start/end-only model: null = start, this sentinel = end. Legacy 1-28 values read as start. */
-export const FIRES_AT_END = 999;
+export const FIRES_AT_END = 999 as const;
 
 export type RecurringTiming = "start" | "end";
 
