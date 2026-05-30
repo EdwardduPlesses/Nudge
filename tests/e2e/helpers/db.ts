@@ -65,6 +65,26 @@ export async function setAnchorDay(day: number, userId: string = TEST_USER_ID): 
   if (error) throw error;
 }
 
+/** Read the workbook's base currency (null if no workbook yet). */
+export async function getBaseCurrency(userId: string = TEST_USER_ID): Promise<string | null> {
+  const sb = admin();
+  const { data } = await sb
+    .from("nudge_workbooks")
+    .select("base_currency")
+    .eq("whop_user_id", userId)
+    .maybeSingle();
+  return (data?.base_currency as string) ?? null;
+}
+
+/** All transaction amounts in the test user's workbook. */
+export async function listTransactionAmounts(userId: string = TEST_USER_ID): Promise<number[]> {
+  const sb = admin();
+  const id = await getTestWorkbookId(userId);
+  if (!id) return [];
+  const { data } = await sb.from("nudge_transactions").select("amount").eq("workbook_id", id);
+  return (data ?? []).map((r) => Number(r.amount));
+}
+
 /** List the test user's period start dates, newest first. */
 export async function listPeriodStarts(userId: string = TEST_USER_ID): Promise<string[]> {
   const sb = admin();

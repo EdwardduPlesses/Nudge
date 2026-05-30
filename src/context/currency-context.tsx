@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef } from "react";
 import {
   DISPLAY_CURRENCY_CODES,
   DISPLAY_LABELS,
@@ -41,20 +41,32 @@ export function CurrencyPreferenceProvider(props: {
     return Number.isFinite(n) ? n : 0;
   }, []);
 
+  // Guard against re-entrant currency changes (double-tap / rapid re-select) firing a
+  // second conversion before the first completes and the page reloads.
+  const changing = useRef(false);
   const changeCurrency = useCallback(
     async (code: DisplayCurrency) => {
-      if (code === currencyCode) return;
-      const res = await fetch(
-        "/api/workbook",
-        nudgeBudgetFetchInit(whopUserToken, {
-          method: "PATCH",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ baseCurrency: code }),
-        }),
-      );
-      if (res.ok) window.location.reload();
-      else console.error("[Nudge] currency change failed", res.status);
+      if (code === currencyCode || changing.current) return;
+      changing.current = true;
+      try {
+        const res = await fetch(
+          "/api/workbook",
+          nudgeBudgetFetchInit(whopUserToken, {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ baseCurrency: code }),
+          }),
+        );
+        if (res.ok) {
+          window.location.reload();
+          return; // keep the guard latched through the reload
+        }
+        console.error("[Nudge] currency change failed", res.status);
+      } catch (err) {
+        console.error("[Nudge] currency change failed", err);
+      }
+      changing.current = false;
     },
     [currencyCode, whopUserToken],
   );
