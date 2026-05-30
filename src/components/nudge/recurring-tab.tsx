@@ -7,9 +7,9 @@ import { ConfirmButton } from "@/components/nudge/confirm-button";
 import { AddRecurringDialog } from "@/components/nudge/add-recurring-dialog";
 import { useCurrency } from "@/context/currency-context";
 import { nudgeBudgetFetchInit, useNudgeBudget } from "@/context/nudge-budget-context";
+import type { RecurringTiming } from "@/lib/budget/recurring";
 
 type RecurringType = "income" | "expense";
-type RecurringTiming = "start" | "end";
 
 type RecurringItem = {
   id: string;
@@ -113,6 +113,7 @@ export function RecurringTab() {
   const refetch = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
+    setApplyMsg(null);
     try {
       const res = await authedFetch("/api/recurring");
       const json = (await res.json().catch(() => ({}))) as {
@@ -255,7 +256,7 @@ export function RecurringTab() {
             <Callout.Text>{loadError}</Callout.Text>
           </Callout.Root>
         ) : null}
-        {applyMsg ? (
+        {applyMsg && state.editable ? (
           <Callout.Root color="gray" size="1">
             <Callout.Text>{applyMsg}</Callout.Text>
           </Callout.Root>
@@ -292,9 +293,11 @@ export function RecurringTab() {
           </section>
         )}
 
-        <Text size="1" color="gray" className="leading-relaxed">
-          New items are added to future periods automatically. To pull them into the current period now, tap &ldquo;Add to this period&rdquo;.
-        </Text>
+        {state.editable ? (
+          <Text size="1" color="gray" className="leading-relaxed">
+            New items are added to future periods automatically. To pull them into the current period now, tap &ldquo;Add to this period&rdquo;.
+          </Text>
+        ) : null}
       </div>
     </div>
   );
