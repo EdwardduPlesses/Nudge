@@ -196,15 +196,16 @@ export function SpendingVelocityCard() {
 
           {insightText ? (
             <p
-              className="mt-5 italic"
+              className="mt-5"
               style={{
                 color: "var(--ink-soft)",
-                fontFamily: "var(--font-fraunces), serif",
-                fontSize: "0.95rem",
-                lineHeight: 1.6,
+                fontFamily: "var(--font-manrope), sans-serif",
+                fontSize: "0.92rem",
+                fontWeight: 500,
+                lineHeight: 1.55,
               }}
             >
-              “{insightText}”
+              {insightText}
             </p>
           ) : null}
         </>
