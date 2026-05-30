@@ -17,11 +17,12 @@ export async function POST() {
   const { userId, workbookId } = c;
   try {
     const supabase = getSupabaseAdmin();
-    const { data: wb } = await supabase
+    const { data: wb, error: wbError } = await supabase
       .from("nudge_workbooks")
       .select("period_anchor_day")
       .eq("id", workbookId)
       .single();
+    if (wbError) throw wbError;
     const anchorDay = Number(wb?.period_anchor_day ?? 1);
     const today = new Date().toISOString().slice(0, 10);
     const period = await ensureCurrentPeriod(workbookId, anchorDay, today);
