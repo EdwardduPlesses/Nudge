@@ -1,5 +1,11 @@
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
+/** Sentinel stored in `day_of_period` to mean "fire at period end". The column predates the
+ *  start/end-only model: null = start, this sentinel = end. Legacy 1-28 values read as start. */
+export const FIRES_AT_END = 999;
+
+export type RecurringTiming = "start" | "end";
+
 export interface RecurringItem {
   id: string;
   type: "income" | "expense";
@@ -7,9 +13,33 @@ export interface RecurringItem {
   categoryId: string | null;
   goalId: string | null;
   note: string;
-  dayOfPeriod: number | null;
+  timing: RecurringTiming;
   ownerUserId: string;
   active: boolean;
+}
+
+/** Row shape upserted into nudge_transactions when materializing recurring items. */
+export interface RecurringTxnRow {
+  id: string;
+  workbook_id: string;
+  period_id: string;
+  date: string;
+  amount: number;
+  type: "income" | "expense";
+  category_id: string | null;
+  goal_id: string | null;
+  note: string;
+  created_by: string;
+}
+
+/** DB day_of_period -> timing. null / legacy 1-28 = start; sentinel (>=29) = end. */
+export function timingFromDayOfPeriod(dayOfPeriod: unknown): RecurringTiming {
+  return Number(dayOfPeriod) >= 29 ? "end" : "start";
+}
+
+/** timing -> DB day_of_period. end = sentinel; start (or unset) = null. */
+export function dayOfPeriodForTiming(timing: RecurringTiming | undefined): number | null {
+  return timing === "end" ? FIRES_AT_END : null;
 }
 
 function mapRow(r: Record<string, unknown>): RecurringItem {
@@ -20,7 +50,7 @@ function mapRow(r: Record<string, unknown>): RecurringItem {
     categoryId: (r.category_id as string) ?? null,
     goalId: (r.goal_id as string) ?? null,
     note: (r.note as string) ?? "",
-    dayOfPeriod: r.day_of_period == null ? null : Number(r.day_of_period),
+    timing: timingFromDayOfPeriod(r.day_of_period),
     ownerUserId: r.owner_user_id as string,
     active: Boolean(r.active),
   };
@@ -37,21 +67,37 @@ export async function listRecurring(workbookId: string): Promise<RecurringItem[]
   return (data ?? []).map(mapRow);
 }
 
-function addDaysIso(startIso: string, days: number): string {
-  const [y, m, d] = startIso.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d + days));
-  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
+/** Build transaction rows for a period from active recurring items. Pure (no I/O) so the
+ *  date/timing logic is unit-testable. start -> period.startDate, end -> period.endDate. */
+export function recurringRowsFor(
+  workbookId: string,
+  items: RecurringItem[],
+  period: { id: string; startDate: string; endDate: string },
+): RecurringTxnRow[] {
+  return items.map((it) => ({
+    id: `rec_${it.id}_${period.startDate}`,
+    workbook_id: workbookId,
+    period_id: period.id,
+    date: it.timing === "end" ? period.endDate : period.startDate,
+    amount: it.amount,
+    type: it.type,
+    category_id: it.categoryId,
+    goal_id: it.goalId,
+    note: it.note || "Recurring",
+    created_by: it.ownerUserId,
+  }));
 }
 
 /**
  * Materialize a workbook's active recurring items as transactions in `period`.
  * Idempotent: each materialized transaction id is derived from the recurring id +
  * period start, upserted with onConflict do-nothing, so re-running does not duplicate.
+ * Returns the number of NEWLY inserted transactions (0 if all already existed).
  */
 export async function materializeRecurring(
   workbookId: string,
   period: { id: string; startDate: string; endDate: string },
-): Promise<void> {
+): Promise<number> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("nudge_recurring_items")
@@ -60,37 +106,17 @@ export async function materializeRecurring(
     .eq("active", true);
   if (error) throw error;
   const items = (data ?? []).map(mapRow);
-  if (items.length === 0) return;
+  if (items.length === 0) return 0;
 
-  const rows = items.map((it) => {
-    const offset = it.dayOfPeriod && it.dayOfPeriod > 1 ? it.dayOfPeriod - 1 : 0;
-    let date = addDaysIso(period.startDate, offset);
-    if (date > period.endDate) date = period.endDate;
-    return {
-      id: `rec_${it.id}_${period.startDate}`,
-      workbook_id: workbookId,
-      period_id: period.id,
-      date,
-      amount: it.amount,
-      type: it.type,
-      category_id: it.categoryId,
-      goal_id: it.goalId,
-      note: it.note || "Recurring",
-      created_by: it.ownerUserId,
-    };
-  });
-  // Composite PK is (workbook_id, id); ignore duplicates so this is idempotent.
-  await supabase.from("nudge_transactions").upsert(rows, { onConflict: "workbook_id,id", ignoreDuplicates: true });
-}
-
-/** Day a recurring item fires within a period: integer 1..28, or null. The client
- *  clamps this, but the API is the trust boundary — an out-of-range value would
- *  otherwise be silently coerced to the period's last/first day at materialize time. */
-function clampDayOfPeriod(value: unknown): number | null {
-  if (value == null) return null;
-  const n = Math.trunc(Number(value));
-  if (!Number.isFinite(n)) return null;
-  return Math.min(28, Math.max(1, n));
+  const rows = recurringRowsFor(workbookId, items, period);
+  // Composite PK is (workbook_id, id); ignore duplicates so this is idempotent. With
+  // ignoreDuplicates, .select() returns only the rows actually inserted -> newly-added count.
+  const { data: inserted, error: upsertError } = await supabase
+    .from("nudge_transactions")
+    .upsert(rows, { onConflict: "workbook_id,id", ignoreDuplicates: true })
+    .select("id");
+  if (upsertError) throw upsertError;
+  return inserted?.length ?? 0;
 }
 
 export async function createRecurring(
@@ -110,7 +136,7 @@ export async function createRecurring(
       category_id: body.categoryId ?? null,
       goal_id: body.goalId ?? null,
       note: String(body.note ?? "").slice(0, 1000),
-      day_of_period: clampDayOfPeriod(body.dayOfPeriod),
+      day_of_period: dayOfPeriodForTiming(body.timing),
       owner_user_id: ownerUserId,
       active: body.active ?? true,
     })
@@ -128,7 +154,7 @@ export async function updateRecurring(workbookId: string, id: string, body: Part
   if (body.categoryId !== undefined) patch.category_id = body.categoryId;
   if (body.goalId !== undefined) patch.goal_id = body.goalId;
   if (body.note !== undefined) patch.note = String(body.note).slice(0, 1000);
-  if (body.dayOfPeriod !== undefined) patch.day_of_period = clampDayOfPeriod(body.dayOfPeriod);
+  if (body.timing !== undefined) patch.day_of_period = dayOfPeriodForTiming(body.timing);
   if (body.active !== undefined) patch.active = body.active;
   const { error } = await supabase.from("nudge_recurring_items").update(patch).eq("id", id).eq("workbook_id", workbookId);
   if (error) throw error;
