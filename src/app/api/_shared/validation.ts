@@ -33,3 +33,30 @@ export function finiteNumber(value: unknown, fallback = 0): number {
 export function nonNegativeNumber(value: unknown, fallback = 0): number {
   return Math.max(0, finiteNumber(value, fallback));
 }
+
+/**
+ * Extract a valid `YYYY-MM-DD` calendar-day key from a stored/incoming date value.
+ * Accepts plain dates and ISO datetimes (e.g. `2026-05-30T12:00:00.000Z`). Returns
+ * null for garbage or impossible dates (e.g. `2026-02-31`), so callers can fall back.
+ */
+export function dateKeyOf(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const m = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  const [, y, mo, d] = m;
+  const dt = new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d)));
+  if (
+    dt.getUTCFullYear() !== Number(y) ||
+    dt.getUTCMonth() !== Number(mo) - 1 ||
+    dt.getUTCDate() !== Number(d)
+  ) {
+    return null; // overflowed (impossible calendar date)
+  }
+  return `${y}-${mo}-${d}`;
+}
+
+/** Trim/coerce to a string and cap its length (prevents unbounded stored strings). */
+export function boundedString(value: unknown, maxLen: number, fallback = ""): string {
+  const s = value == null ? fallback : String(value);
+  return s.length > maxLen ? s.slice(0, maxLen) : s;
+}

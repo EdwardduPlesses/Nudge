@@ -87,13 +87,43 @@ export async function listTransactionAmounts(userId: string = TEST_USER_ID): Pro
 
 /** List the test user's period start dates, newest first. */
 export async function listPeriodStarts(userId: string = TEST_USER_ID): Promise<string[]> {
+  return (await listPeriodRows(userId)).map((p) => p.startDate);
+}
+
+/** List the test user's periods (id + start date), newest first. */
+export async function listPeriodRows(
+  userId: string = TEST_USER_ID,
+): Promise<{ id: string; startDate: string }[]> {
   const sb = admin();
   const id = await getTestWorkbookId(userId);
   if (!id) return [];
   const { data } = await sb
     .from("nudge_periods")
-    .select("start_date")
+    .select("id, start_date")
     .eq("workbook_id", id)
     .order("start_date", { ascending: false });
-  return (data ?? []).map((r) => r.start_date as string);
+  return (data ?? []).map((r) => ({ id: r.id as string, startDate: r.start_date as string }));
+}
+
+/** The start_date of the period a transaction (found by note) is filed under. */
+export async function getTransactionPeriodStart(
+  note: string,
+  userId: string = TEST_USER_ID,
+): Promise<string | null> {
+  const sb = admin();
+  const wbId = await getTestWorkbookId(userId);
+  if (!wbId) return null;
+  const { data: tx } = await sb
+    .from("nudge_transactions")
+    .select("period_id")
+    .eq("workbook_id", wbId)
+    .eq("note", note)
+    .maybeSingle();
+  if (!tx?.period_id) return null;
+  const { data: p } = await sb
+    .from("nudge_periods")
+    .select("start_date")
+    .eq("id", tx.period_id as string)
+    .maybeSingle();
+  return (p?.start_date as string) ?? null;
 }

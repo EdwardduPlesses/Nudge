@@ -77,6 +77,38 @@ export async function ensureCurrentPeriod(
   return last;
 }
 
+/**
+ * The period that contains `dateIso` for this workbook, creating exactly that one
+ * period if it doesn't exist yet (snapshotting limits/income from the nearest prior
+ * period). Used to file a transaction under the period its DATE belongs to — not the
+ * current period — so back/forward-dated entries land in the correct cycle without
+ * creating a chain of empty periods.
+ */
+export async function resolvePeriodForDate(
+  workbookId: string,
+  anchorDay: number,
+  dateIso: string,
+): Promise<PeriodRow> {
+  const anchor = clampAnchorDay(anchorDay);
+  const range = periodRangeFor(dateIso, anchor);
+  const periods = await listPeriods(workbookId);
+  const found = periods.find((p) => p.startDate === range.start);
+  if (found) return found;
+
+  const created = await insertPeriod(workbookId, range.start, range.end);
+  const prior =
+    periods
+      .filter((p) => p.startDate < range.start)
+      .sort((a, b) => (a.startDate < b.startDate ? 1 : -1))[0] ?? null;
+  if (prior) await copySnapshot(prior.id, created.id);
+  await materializeRecurring(workbookId, {
+    id: created.id,
+    startDate: created.startDate,
+    endDate: created.endDate,
+  });
+  return created;
+}
+
 async function insertPeriod(workbookId: string, start: string, end: string): Promise<PeriodRow> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
