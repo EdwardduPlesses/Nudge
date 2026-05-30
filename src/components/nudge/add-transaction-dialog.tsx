@@ -555,6 +555,7 @@ export function EditTransactionDialog(props: {
     if (entryType === "expense" && categoryId) body.categoryId = categoryId;
     if (note.trim()) body.note = note.trim();
 
+    setAmountError(null);
     setRecurringStatus("saving");
     try {
       const res = await fetch(
