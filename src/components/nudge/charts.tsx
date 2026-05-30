@@ -98,9 +98,15 @@ export function CategoryPie({
     );
   }
 
+  const ariaLabel = `Spending by category: ${data
+    .map((d) => `${d.name} ${c.formatAmount(d.value)}`)
+    .join(", ")}`;
+
   return (
     <div
       ref={ref}
+      role="img"
+      aria-label={ariaLabel}
       className="flex h-[240px] w-full min-h-[240px] min-w-0 items-center justify-center overflow-hidden rounded-2xl"
     >
       <PieChart width={width} height={PIE_H} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
@@ -134,11 +140,18 @@ export function WeekBarChart({ data }: { data: { day: string; total: number }[] 
   const c = useCurrency();
   const axisTickUsd = (n: number) =>
     formatUsdAsDisplayAxisTick(Number(n ?? 0), c.currencyCode, 1);
-  const { ref, width } = useTrackedChartWidth(288, 960);
+  // Min 240 (not 288) so the chart shrinks to fit the smallest phones instead of
+  // being clipped by the card's overflow-hidden.
+  const { ref, width } = useTrackedChartWidth(240, 960);
+  const ariaLabel = `Daily expense totals, last 7 days: ${data
+    .map((d) => `${d.day} ${c.formatAmount(d.total)}`)
+    .join(", ")}`;
 
   return (
     <div
       ref={ref}
+      role="img"
+      aria-label={ariaLabel}
       className="h-[220px] w-full min-h-[220px] min-w-0 shrink-0 overflow-hidden rounded-2xl"
     >
       <BarChart width={width} height={BAR_H} data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>

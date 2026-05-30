@@ -27,6 +27,7 @@ function FilterPill(props: {
     <button
       type="button"
       onClick={props.onClick}
+      aria-pressed={props.active}
       className={props.truncate ? "max-w-[220px] truncate" : undefined}
       style={{
         display: "inline-flex",
