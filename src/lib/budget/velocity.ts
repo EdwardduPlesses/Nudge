@@ -1,6 +1,5 @@
-import { differenceInCalendarDays, endOfMonth } from "date-fns";
+import { differenceInCalendarDays, parseISO } from "date-fns";
 import type { Category, Transaction } from "./types";
-import { transactionsThisMonth } from "./selectors";
 
 export type SpendingVelocityStatus = "ON_TRACK" | "WARNING" | "OVERSPENDING";
 
@@ -13,10 +12,30 @@ export type SpendingVelocityInsightIntent =
       messageKey: "reduce";
     };
 
-export function getCurrentMonthTransactions(transactions: Transaction[]): Transaction[] {
-  return transactionsThisMonth(transactions, new Date()).filter(
-    (t) => t.type === "expense",
+export interface PeriodDayCounts {
+  totalDays: number;
+  daysPassed: number;
+  remainingInclusiveDays: number;
+}
+
+/**
+ * Inclusive day counts for a budget period relative to `today`, clamped to the period.
+ * Velocity/forecast reason about the budget period, so day counts MUST come from the
+ * period range — not the Gregorian month, which is wrong for any anchor day != 1.
+ */
+export function periodDayCounts(
+  period: { startDate: string; endDate: string },
+  today: Date,
+): PeriodDayCounts {
+  const start = parseISO(period.startDate);
+  const end = parseISO(period.endDate);
+  const totalDays = Math.max(1, differenceInCalendarDays(end, start) + 1);
+  const daysPassed = Math.min(totalDays, Math.max(1, differenceInCalendarDays(today, start) + 1));
+  const remainingInclusiveDays = Math.min(
+    totalDays,
+    Math.max(0, differenceInCalendarDays(end, today) + 1),
   );
+  return { totalDays, daysPassed, remainingInclusiveDays };
 }
 
 export function calculateTotalSpent(transactions: Transaction[]): number {
@@ -24,14 +43,6 @@ export function calculateTotalSpent(transactions: Transaction[]): number {
     const a = Number.isFinite(t.amount) ? t.amount : 0;
     return s + a;
   }, 0);
-}
-
-export function getDaysPassedInMonth(): number {
-  return new Date().getDate();
-}
-
-export function getTotalDaysInMonth(): number {
-  return endOfMonth(new Date()).getDate();
 }
 
 export function calculateDailySpendRate(totalSpent: number, daysPassed: number): number {
@@ -63,13 +74,6 @@ export function calculateStatus(
   if (f <= budget) return "ON_TRACK";
   if (f <= budget * 1.1) return "WARNING";
   return "OVERSPENDING";
-}
-
-/** Inclusive calendar days from today through end of month (local). */
-export function inclusiveRemainingDaysInMonthFromToday(): number {
-  const today = new Date();
-  const end = endOfMonth(today);
-  return differenceInCalendarDays(end, today) + 1;
 }
 
 export function buildSpendingVelocityInsight(args: {
@@ -148,19 +152,26 @@ export interface MonthlySpendingVelocityResult {
   insight: SpendingVelocityInsightIntent | null;
 }
 
-/** Single snapshot from current budgets + transactions (caller passes full state slices). */
-export function computeMonthlySpendingVelocity(transactions: Transaction[], categories: Category[]): MonthlySpendingVelocityResult {
-  const monthExpenseTx = getCurrentMonthTransactions(transactions);
-  const totalSpent = calculateTotalSpent(monthExpenseTx);
-  const hasExpenseData = monthExpenseTx.length > 0;
-  const daysPassed = getDaysPassedInMonth();
-  const totalDaysInMonth = getTotalDaysInMonth();
+/**
+ * Single velocity snapshot for a budget period. `transactions` are the period's rows
+ * (already scoped by the caller); day counts come from the period, not the calendar month.
+ */
+export function computeMonthlySpendingVelocity(
+  transactions: Transaction[],
+  categories: Category[],
+  period: { startDate: string; endDate: string },
+  today: Date = new Date(),
+): MonthlySpendingVelocityResult {
+  const periodExpenseTx = transactions.filter((t) => t.type === "expense");
+  const totalSpent = calculateTotalSpent(periodExpenseTx);
+  const hasExpenseData = periodExpenseTx.length > 0;
+  const { totalDays, daysPassed, remainingInclusiveDays } = periodDayCounts(period, today);
+  const totalDaysInMonth = totalDays;
   const dailyRate = calculateDailySpendRate(totalSpent, daysPassed);
   const forecast = forecastEndOfMonthSpend(dailyRate, totalDaysInMonth);
   const budget = calculateTotalBudget(categories);
   const hasBudget = budget > 0;
   const status = hasBudget ? calculateStatus(forecast, budget) : undefined;
-  const remainingInclusiveDays = inclusiveRemainingDaysInMonthFromToday();
 
   let safeDailyUsd: number | null = null;
   if (hasBudget && remainingInclusiveDays >= 1) {

@@ -1,13 +1,13 @@
 import { format, parseISO } from "date-fns";
 import type { BudgetState } from "@/lib/budget/types";
 import {
-  categorySpendThisMonth,
+  categorySpendInPeriod,
   goalDisplaySaved,
   sumExpenses,
   sumIncome,
   totalGoalsSavedUsd,
   totalPlannedIncome,
-  transactionsThisMonth,
+  transactionsInPeriod,
 } from "@/lib/budget/selectors";
 
 const TX_CAP = 20;
@@ -50,7 +50,7 @@ function buildDerivedContext(
   fm: (usd: number) => string,
   now: Date,
 ): string[] {
-  const monthTx = transactionsThisMonth(budgetState.transactions, now);
+  const monthTx = transactionsInPeriod(budgetState.transactions, budgetState.period);
   const monthExpenses = sumExpenses(monthTx);
   const monthIncomeLogged = sumIncome(monthTx);
   const totalPlannedLimits = budgetState.categories.reduce(
@@ -74,7 +74,7 @@ function buildDerivedContext(
     goalsSummaryLine = `${budgetState.goals.length} goal(s); aggregate targets ${fm(sumTarget)}, aggregate saved ${fm(sumSaved)} (see Goals for per-goal breakdown).`;
   }
 
-  const monthLabel = format(now, "MMMM yyyy");
+  const monthLabel = budgetState.period.label ?? format(now, "MMMM yyyy");
   const refDay = format(now, "yyyy-MM-dd");
 
   const derived: string[] = [
@@ -95,7 +95,7 @@ function buildDerivedContext(
           .map((c) => {
             const label =
               typeof c.name === "string" && c.name.trim().length > 0 ? c.name.trim() : "Uncategorized";
-            const spent = categorySpendThisMonth(c.id, budgetState.transactions, now);
+            const spent = categorySpendInPeriod(c.id, budgetState.transactions);
             const limit = Number.isFinite(c.budgetLimit) ? c.budgetLimit : 0;
             const delta = spent - limit;
             return `- **${label}** — limit ${fm(limit)}, month spend ${fm(spent)}, variance ${delta >= 0 ? "+" : ""}${fm(delta)}`;

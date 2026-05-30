@@ -1,5 +1,5 @@
 import type { BudgetState } from "./types";
-import { sumExpenses, sumIncome, totalPlannedIncome, transactionsThisMonth } from "./selectors";
+import { sumExpenses, sumIncome, totalPlannedIncome, transactionsInPeriod } from "./selectors";
 
 export type MonthlyRemainingSnapshot = {
   /** True when planned income is missing or zero—user should set a monthly income. */
@@ -19,14 +19,13 @@ export type MonthlyRemainingSnapshot = {
  * availableThisMonth = max(monthlyIncome, currentMonthIncome) - currentMonthExpenses
  */
 export function computeMonthlyRemaining(
-  state: Pick<BudgetState, "memberIncomes" | "transactions">,
-  reference: Date = new Date(),
+  state: Pick<BudgetState, "memberIncomes" | "transactions" | "period">,
 ): MonthlyRemainingSnapshot {
   const planned = totalPlannedIncome(state);
   const monthlyIncome = Number.isFinite(planned) ? Math.max(0, planned) : 0;
-  const monthTx = transactionsThisMonth(state.transactions, reference);
-  const currentMonthIncome = sumIncome(monthTx);
-  const currentMonthExpenses = sumExpenses(monthTx);
+  const periodTx = transactionsInPeriod(state.transactions, state.period);
+  const currentMonthIncome = sumIncome(periodTx);
+  const currentMonthExpenses = sumExpenses(periodTx);
   const comparableIncome = Math.max(monthlyIncome, currentMonthIncome);
   const availableThisMonth = comparableIncome - currentMonthExpenses;
 

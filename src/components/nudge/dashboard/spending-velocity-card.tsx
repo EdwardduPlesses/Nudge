@@ -23,8 +23,8 @@ export function SpendingVelocityCard() {
   const { formatAmount } = useCurrency();
 
   const v = useMemo(
-    () => computeMonthlySpendingVelocity(state.transactions, state.categories),
-    [state.transactions, state.categories],
+    () => computeMonthlySpendingVelocity(state.transactions, state.categories, state.period),
+    [state.transactions, state.categories, state.period],
   );
 
   const badge = statusBadgeUi(v.status);

@@ -9,23 +9,24 @@ import { SpendingVelocityCard } from "@/components/nudge/dashboard/spending-velo
 import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
 import {
-  categorySpendThisMonth,
+  categorySpendInPeriod,
   dailySpendingLastWeek,
   spendingByCategory,
-  transactionsThisMonth,
+  transactionsInPeriod,
 } from "@/lib/budget/selectors";
 
 export function InsightsTab() {
   const { state } = useNudgeBudget();
   const c = useCurrency();
   const fmt = c.formatAmount;
-  const monthTx = useMemo(
-    () => transactionsThisMonth(state.transactions, new Date()),
-    [state.transactions],
+  const periodLabel = state.period.label ?? format(new Date(), "MMMM yyyy", { locale: enUS });
+  const periodTx = useMemo(
+    () => transactionsInPeriod(state.transactions, state.period),
+    [state.transactions, state.period],
   );
   const pie = useMemo(
-    () => spendingByCategory(monthTx, state.categories),
-    [monthTx, state.categories],
+    () => spendingByCategory(periodTx, state.categories),
+    [periodTx, state.categories],
   );
   const weekBars = useMemo(
     () => dailySpendingLastWeek(state.transactions),
@@ -41,7 +42,7 @@ export function InsightsTab() {
           <span aria-hidden style={{ margin: "0 0.5em", color: "var(--ink-faint)" }}>
             —
           </span>
-          {format(new Date(), "MMMM yyyy", { locale: enUS })}
+          {periodLabel}
         </span>
         <h2
           className="heading-display mt-3"
@@ -119,7 +120,7 @@ export function InsightsTab() {
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
             {state.categories.map((cat) => {
-              const used = categorySpendThisMonth(cat.id, state.transactions, new Date());
+              const used = categorySpendInPeriod(cat.id, state.transactions);
               const pct = cat.budgetLimit > 0 ? Math.min(100, (used / cat.budgetLimit) * 100) : 0;
               return (
                 <div

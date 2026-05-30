@@ -15,7 +15,7 @@ import {
   sumExpenses,
   sumIncome,
   transactionsByActor,
-  transactionsThisMonth,
+  transactionsInPeriod,
 } from "@/lib/budget/selectors";
 
 function WhoPill(props: { active: boolean; label: string; onClick: () => void }) {
@@ -66,18 +66,20 @@ export function DashboardTab() {
     [state.transactions, whoFilter],
   );
 
-  const monthTx = useMemo(
-    () => transactionsThisMonth(scopedTransactions, new Date()),
-    [scopedTransactions],
+  const periodTx = useMemo(
+    () => transactionsInPeriod(scopedTransactions, state.period),
+    [scopedTransactions, state.period],
   );
-  const income = useMemo(() => sumIncome(monthTx), [monthTx]);
-  const spent = useMemo(() => sumExpenses(monthTx), [monthTx]);
+  const income = useMemo(() => sumIncome(periodTx), [periodTx]);
+  const spent = useMemo(() => sumExpenses(periodTx), [periodTx]);
   const net = income - spent;
 
   const v = useMemo(
-    () => computeMonthlySpendingVelocity(scopedTransactions, state.categories),
-    [scopedTransactions, state.categories],
+    () => computeMonthlySpendingVelocity(scopedTransactions, state.categories, state.period),
+    [scopedTransactions, state.categories, state.period],
   );
+
+  const periodLabel = state.period.label ?? format(new Date(), "MMMM yyyy", { locale: enUS });
 
   const forecastDisplay =
     v.hasBudget && v.hasExpenseData ? fmt(v.forecast) : "—";
@@ -92,7 +94,7 @@ export function DashboardTab() {
             <span aria-hidden style={{ margin: "0 0.5em", color: "var(--ink-faint)" }}>
               —
             </span>
-            {format(new Date(), "MMMM yyyy", { locale: enUS })}
+            {periodLabel}
           </span>
           <h2
             className="heading-display mt-3"
@@ -160,11 +162,11 @@ export function DashboardTab() {
         </div>
       ) : null}
 
-      {state.transactions.length > 0 && monthTx.length === 0 ? (
+      {state.transactions.length > 0 && periodTx.length === 0 ? (
         <p style={{ color: "var(--ink-muted)", fontSize: "0.9rem", lineHeight: 1.55 }}>
-          Nothing dated in {format(new Date(), "MMMM yyyy", { locale: enUS })}. Check{" "}
+          Nothing dated in {periodLabel}. Check{" "}
           <span style={{ color: "var(--ink)", fontWeight: 600 }}>Activity</span> or add a transaction
-          for this month.
+          for this period.
         </p>
       ) : null}
 
