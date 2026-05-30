@@ -43,6 +43,40 @@ export function periodRangeFor(dateIso: string, anchorDay: number): { start: str
   return { start, end: addDaysIso(nextStart, -1) };
 }
 
+/**
+ * Ordered list of period start dates to create so that the period containing
+ * `todayIso` exists, given an anchor day. Fills the gap forward from the most
+ * recent existing period that starts before today's period, but NEVER returns a
+ * start after today's period — so changing the anchor day can't make the rollover
+ * overshoot decades into the future. Today's period start is always the last
+ * element when the result is non-empty; returns `[]` when it already exists.
+ */
+export function planPeriodsToCreate(
+  existingStarts: string[],
+  anchorDay: number,
+  todayIso: string,
+): string[] {
+  const CAP = 240; // safety backstop (~20y); a consistent grid terminates well before this
+  const anchor = clampAnchorDay(anchorDay);
+  const target = periodRangeFor(todayIso, anchor).start;
+  if (existingStarts.includes(target)) return [];
+
+  const before = existingStarts.filter((s) => s < target).sort();
+  const prior = before.length ? before[before.length - 1] : null;
+  if (prior === null) return [target];
+
+  const out: string[] = [];
+  let cursor = nextPeriodStart(prior, anchor);
+  let guard = 0;
+  while (cursor < target && guard < CAP) {
+    out.push(cursor);
+    cursor = nextPeriodStart(cursor, anchor);
+    guard++;
+  }
+  out.push(target);
+  return out;
+}
+
 /** Start date of the cycle after the one beginning at `startIso`. */
 export function nextPeriodStart(startIso: string, anchorDay: number): string {
   const anchor = clampAnchorDay(anchorDay);

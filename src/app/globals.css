@@ -1018,6 +1018,13 @@ body::before {
   .atelier-fab {
     bottom: calc(6.25rem + env(safe-area-inset-bottom, 0px));
   }
+  /* The sync-error toast is the only signal that an optimistic edit was rolled
+     back. Lift it above the fixed bottom nav (z-index 55) and the FAB so mobile
+     users actually see it instead of having it painted under the bar. */
+  .nudge-sync-toast {
+    bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
+    z-index: 60;
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────

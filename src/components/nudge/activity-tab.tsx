@@ -8,6 +8,7 @@ import {
   EditTransactionDialog,
 } from "@/components/nudge/add-transaction-dialog";
 import { ActivityFeed } from "@/components/nudge/activity-feed";
+import { ConfirmButton } from "@/components/nudge/confirm-button";
 import { MemberBadge } from "@/components/nudge/member-badge";
 import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
@@ -26,6 +27,7 @@ function FilterPill(props: {
     <button
       type="button"
       onClick={props.onClick}
+      aria-pressed={props.active}
       className={props.truncate ? "max-w-[220px] truncate" : undefined}
       style={{
         display: "inline-flex",
@@ -57,6 +59,7 @@ export function ActivityTab() {
   const c = useCurrency();
   const fmt = c.formatAmount;
   const { state, removeTransaction } = useNudgeBudget();
+  const editable = state.editable;
   const [typeFilter, setTypeFilter] = useState<ActivityFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [whoFilter, setWhoFilter] = useState<string>("all");
@@ -128,20 +131,22 @@ export function ActivityTab() {
           </p>
         </div>
         <div className="w-full shrink-0 lg:w-auto">
-          <AddTransactionDialog
-            trigger={
-              <button
-                type="button"
-                className="atelier-btn-gold w-full lg:w-auto"
-                aria-label="Add income or expense"
-              >
-                <span aria-hidden style={{ fontSize: "1rem", lineHeight: 1 }}>
-                  ✦
-                </span>
-                Add transaction
-              </button>
-            }
-          />
+          {editable ? (
+            <AddTransactionDialog
+              trigger={
+                <button
+                  type="button"
+                  className="atelier-btn-gold w-full lg:w-auto"
+                  aria-label="Add income or expense"
+                >
+                  <span aria-hidden style={{ fontSize: "1rem", lineHeight: 1 }}>
+                    ✦
+                  </span>
+                  Add transaction
+                </button>
+              }
+            />
+          ) : null}
         </div>
       </header>
 
@@ -339,6 +344,7 @@ export function ActivityTab() {
                           {fmt(t.amount)}
                         </span>
                         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                          {editable ? (
                           <Button
                             size="2"
                             variant="soft"
@@ -351,15 +357,25 @@ export function ActivityTab() {
                           >
                             Edit
                           </Button>
-                          <Button
-                            size="2"
-                            variant="soft"
-                            color="red"
-                            className="min-h-10 w-full sm:w-auto"
-                            onClick={() => removeTransaction(t.id)}
-                          >
-                            Remove
-                          </Button>
+                          ) : null}
+                          {editable ? (
+                          <ConfirmButton
+                            title="Remove transaction?"
+                            description="This permanently deletes the entry and updates your totals."
+                            confirmLabel="Remove"
+                            onConfirm={() => removeTransaction(t.id)}
+                            trigger={
+                              <Button
+                                size="2"
+                                variant="soft"
+                                color="red"
+                                className="min-h-10 w-full sm:w-auto"
+                              >
+                                Remove
+                              </Button>
+                            }
+                          />
+                          ) : null}
                         </div>
                       </div>
                     </div>

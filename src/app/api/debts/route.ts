@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { isSupabasePersistenceEnabled } from "@/lib/supabase/config";
 import { resolveMutationContext } from "../_shared/workbook-mutation";
-import { readJson, nonNegativeNumber } from "../_shared/validation";
+import { readJson, nonNegativeNumber, boundedString } from "../_shared/validation";
 import { logActivity } from "@/lib/budget/activity";
 
 export const dynamic = "force-dynamic";
@@ -45,14 +45,14 @@ export async function POST(req: Request) {
   const { error } = await supabase.from("nudge_debts").insert({
     id,
     workbook_id: workbookId,
-    name: String(body.name ?? "Debt"),
+    name: boundedString(body.name, 120, "Debt"),
     balance: nonNegativeNumber(body.balance),
     apr: nonNegativeNumber(body.apr),
     min_payment: nonNegativeNumber(body.minPayment),
     created_by: userId,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  await logActivity(workbookId, userId, "created", "debt", id, `added debt ${String(body.name ?? "Debt")}`);
+  await logActivity(workbookId, userId, "created", "debt", id, `added debt ${boundedString(body.name, 120, "Debt")}`);
   return NextResponse.json({ id });
 }
 
@@ -65,7 +65,7 @@ export async function PATCH(req: Request) {
   if (!body.id) return NextResponse.json({ error: "id required" }, { status: 400 });
   const id = String(body.id);
   const patch: Record<string, unknown> = {};
-  if (body.name !== undefined) patch.name = String(body.name);
+  if (body.name !== undefined) patch.name = boundedString(body.name, 120, "Debt");
   if (body.balance !== undefined) patch.balance = nonNegativeNumber(body.balance);
   if (body.apr !== undefined) patch.apr = nonNegativeNumber(body.apr);
   if (body.minPayment !== undefined) patch.min_payment = nonNegativeNumber(body.minPayment);

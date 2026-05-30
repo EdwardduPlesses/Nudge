@@ -1,4 +1,4 @@
-import { differenceInCalendarDays, endOfMonth, format, parseISO, startOfMonth, subDays } from "date-fns";
+import { differenceInCalendarDays, format, parseISO, subDays } from "date-fns";
 import type { BudgetState, Category, Goal, Transaction } from "./types";
 
 export function totalPlannedIncome(s: Pick<BudgetState, "memberIncomes">): number {
@@ -33,17 +33,32 @@ export function transactionCalendarDayKey(dateStr: string): string | null {
   return format(parsed, "yyyy-MM-dd");
 }
 
-export function transactionsThisMonth(
+/**
+ * Transactions whose date falls within a budget period's inclusive [start, end] range.
+ * Loaded `state.transactions` are already scoped to one period by `period_id`, so this is
+ * a defensive range filter — use it (not calendar-month bounds) for period aggregates, or
+ * the first segment of every non-day-1 anchor period would be silently dropped.
+ */
+export function transactionsInPeriod(
   transactions: Transaction[],
-  reference: Date,
+  period: { startDate: string; endDate: string },
 ): Transaction[] {
-  const startKey = format(startOfMonth(reference), "yyyy-MM-dd");
-  const endKey = format(endOfMonth(reference), "yyyy-MM-dd");
+  const { startDate, endDate } = period;
+  if (!startDate || !endDate) return transactions;
   return transactions.filter((t) => {
     const key = transactionCalendarDayKey(t.date);
     if (key == null) return false;
-    return key >= startKey && key <= endKey;
+    return key >= startDate && key <= endDate;
   });
+}
+
+/** A single category's spend across the given (period-scoped) transactions. */
+export function categorySpendInPeriod(categoryId: string, transactions: Transaction[]): number {
+  return transactions
+    .filter(
+      (t) => t.type === "expense" && t.goalId == null && (t.categoryId ?? "_none") === categoryId,
+    )
+    .reduce((s, t) => s + t.amount, 0);
 }
 
 export function sumIncome(transactions: Transaction[]): number {
@@ -112,22 +127,6 @@ export function dailySpendingLastWeek(transactions: Transaction[]): {
     days.push({ day: label, total });
   }
   return days;
-}
-
-export function categorySpendThisMonth(
-  categoryId: string,
-  transactions: Transaction[],
-  reference: Date,
-): number {
-  const monthTx = transactionsThisMonth(transactions, reference);
-  return monthTx
-    .filter(
-      (t) =>
-        t.type === "expense" &&
-        t.goalId == null &&
-        (t.categoryId ?? "_none") === categoryId,
-    )
-    .reduce((s, t) => s + t.amount, 0);
 }
 
 /** Net USD moved into a goal via transactions (expenses add, income withdrawals subtract). */

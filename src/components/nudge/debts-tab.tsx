@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Callout, Dialog, Progress, SegmentedControl, TextField } from "frosted-ui";
 import { NudgeListSkeleton } from "@/components/nudge/content-skeleton";
+import { ConfirmButton } from "@/components/nudge/confirm-button";
 import { useCurrency } from "@/context/currency-context";
 import { nudgeBudgetFetchInit, useNudgeBudget } from "@/context/nudge-budget-context";
 import {
@@ -360,14 +361,16 @@ export function DebtsTab() {
             if (!o) resetCreateForm();
           }}
         >
-          <Dialog.Trigger>
-            <button type="button" className="atelier-btn-gold w-full shrink-0 sm:w-auto">
-              <span aria-hidden style={{ fontSize: "1rem", lineHeight: 1 }}>
-                ✦
-              </span>
-              Add debt
-            </button>
-          </Dialog.Trigger>
+          {state.editable ? (
+            <Dialog.Trigger>
+              <button type="button" className="atelier-btn-gold w-full shrink-0 sm:w-auto">
+                <span aria-hidden style={{ fontSize: "1rem", lineHeight: 1 }}>
+                  ✦
+                </span>
+                Add debt
+              </button>
+            </Dialog.Trigger>
+          ) : null}
           <Dialog.Content
             size="3"
             className="max-h-[calc(100dvh-2rem)] max-w-[min(calc(100vw-1.5rem),24rem)] overflow-y-auto overscroll-contain sm:max-w-md"
@@ -589,16 +592,23 @@ export function DebtsTab() {
                     >
                       Edit
                     </Button>
-                    <Button
-                      size="2"
-                      variant="ghost"
-                      color="red"
-                      className="min-h-10 flex-1 sm:flex-none"
-                      onClick={() => void removeDebt(d.id)}
-                      aria-label={`Remove debt ${d.name}`}
-                    >
-                      Remove
-                    </Button>
+                    <ConfirmButton
+                      title="Remove debt?"
+                      description="This permanently deletes this debt and its balance/APR details."
+                      confirmLabel="Remove"
+                      onConfirm={() => void removeDebt(d.id)}
+                      trigger={
+                        <Button
+                          size="2"
+                          variant="ghost"
+                          color="red"
+                          className="min-h-10 flex-1 sm:flex-none"
+                          aria-label={`Remove debt ${d.name}`}
+                        >
+                          Remove
+                        </Button>
+                      }
+                    />
                   </div>
                 </div>
 

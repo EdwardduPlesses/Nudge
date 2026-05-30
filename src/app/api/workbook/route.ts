@@ -36,16 +36,52 @@ export async function PATCH(req: Request) {
       await supabase.from("nudge_workbooks").update({ base_currency: to }).eq("id", ctx.workbookId);
       return NextResponse.json({ ok: true, baseCurrency: to });
     }
-    const { rates } = await getUsdRatesToTargets();
+    // Convert on LIVE rates only. Converting on the stale hardcoded fallback would
+    // silently multiply every stored amount by an out-of-date rate with no recovery
+    // path, while telling the user it used "today's rate" (P1).
+    const { rates, stale } = await getUsdRatesToTargets();
+    if (stale) {
+      return NextResponse.json(
+        { error: "Live exchange rates are unavailable right now. Please try again shortly." },
+        { status: 503 },
+      );
+    }
     const rate = crossRate(from, to, rates);
     if (!Number.isFinite(rate) || rate <= 0) return NextResponse.json({ error: "Rate unavailable" }, { status: 502 });
+
+    // Atomic compare-and-swap: claim the `from`→`to` transition in a single statement.
+    // Only the request that actually flips base_currency away from `from` proceeds to
+    // multiply amounts; a racing double-tap, a client retry, or a second shared-workbook
+    // member matches 0 rows here and skips the conversion entirely. Without this, two
+    // concurrent changes each multiplied every amount, corrupting all money ~rate² (P0).
+    const { data: claimed, error: claimErr } = await supabase
+      .from("nudge_workbooks")
+      .update({ base_currency: to })
+      .eq("id", ctx.workbookId)
+      .eq("base_currency", from)
+      .select("id");
+    if (claimErr) return NextResponse.json({ error: claimErr.message }, { status: 500 });
+    if (!claimed || claimed.length === 0) {
+      // Lost the race / duplicate request — the conversion already ran. No-op.
+      return NextResponse.json({ ok: true, baseCurrency: to, alreadyApplied: true });
+    }
+
     const { error: rpcErr } = await supabase.rpc("nudge_convert_workbook_currency", {
       p_workbook_id: ctx.workbookId,
       p_rate: rate,
       p_to_currency: to,
       p_decimals: decimalsFor(to),
     });
-    if (rpcErr) return NextResponse.json({ error: rpcErr.message }, { status: 500 });
+    if (rpcErr) {
+      // The amount multiply failed after we claimed the transition. Roll the currency
+      // flag back so we don't leave `to` set with un-converted `from` amounts.
+      await supabase
+        .from("nudge_workbooks")
+        .update({ base_currency: from })
+        .eq("id", ctx.workbookId)
+        .eq("base_currency", to);
+      return NextResponse.json({ error: rpcErr.message }, { status: 500 });
+    }
     await logActivity(ctx.workbookId, ctx.userId, "updated", "workbook", ctx.workbookId, `changed budget currency to ${to}`);
     return NextResponse.json({ ok: true, baseCurrency: to });
   }

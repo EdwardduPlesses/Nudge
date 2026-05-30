@@ -1,5 +1,4 @@
 import type { BudgetState, Transaction } from "./types";
-import { categorySpendThisMonth } from "./selectors";
 
 export type CategoryHealthStatus = "SAFE" | "WARNING" | "HIGH" | "OVER";
 
@@ -37,12 +36,19 @@ export function insightFromStatus(status: CategoryHealthStatus): string {
 
 export function computeCategoryHealthRows(
   state: Pick<BudgetState, "categories" | "transactions">,
-  reference: Date,
   transactionsOverride?: Transaction[],
 ): CategoryHealthRow[] {
   const transactions = transactionsOverride ?? state.transactions;
+  // Single pass over the period-scoped transactions: category id → spend (excludes
+  // income and goal allocations). Avoids re-scanning every transaction per category.
+  const spendByCategory = new Map<string, number>();
+  for (const t of transactions) {
+    if (t.type !== "expense" || t.goalId != null) continue;
+    const id = t.categoryId ?? "_none";
+    spendByCategory.set(id, (spendByCategory.get(id) ?? 0) + t.amount);
+  }
   return state.categories.map((cat) => {
-    const spend = categorySpendThisMonth(cat.id, transactions, reference);
+    const spend = spendByCategory.get(cat.id) ?? 0;
     const limit = cat.budgetLimit;
 
     if (!(limit > 0)) {

@@ -4,6 +4,7 @@ import { format, parseISO } from "date-fns";
 import { useEffect, useState } from "react";
 import { Button, Dialog, Progress, TextField } from "frosted-ui";
 import { NudgeDatePicker } from "@/components/nudge/nudge-date-picker";
+import { ConfirmButton } from "@/components/nudge/confirm-button";
 import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
 import { goalDisplaySaved } from "@/lib/budget/selectors";
@@ -148,14 +149,16 @@ export function GoalsTab() {
             if (!o) resetCreateForm();
           }}
         >
-          <Dialog.Trigger>
-            <button type="button" className="atelier-btn-gold w-full shrink-0 sm:w-auto">
-              <span aria-hidden style={{ fontSize: "1rem", lineHeight: 1 }}>
-                ✦
-              </span>
-              New goal
-            </button>
-          </Dialog.Trigger>
+          {state.editable ? (
+            <Dialog.Trigger>
+              <button type="button" className="atelier-btn-gold w-full shrink-0 sm:w-auto">
+                <span aria-hidden style={{ fontSize: "1rem", lineHeight: 1 }}>
+                  ✦
+                </span>
+                New goal
+              </button>
+            </Dialog.Trigger>
+          ) : null}
           <Dialog.Content
             size="3"
             className="max-h-[calc(100dvh-2rem)] max-w-[min(calc(100vw-1.5rem),24rem)] overflow-y-auto overscroll-contain sm:max-w-md"
@@ -302,16 +305,23 @@ export function GoalsTab() {
                     >
                       Edit
                     </Button>
-                    <Button
-                      size="2"
-                      variant="ghost"
-                      color="red"
-                      className="min-h-10 flex-1 sm:flex-none"
-                      onClick={() => removeGoal(g.id)}
-                      aria-label={`Remove goal ${g.name}`}
-                    >
-                      Remove
-                    </Button>
+                    <ConfirmButton
+                      title="Remove goal?"
+                      description="This deletes the goal and unlinks it from any transactions that fed it."
+                      confirmLabel="Remove"
+                      onConfirm={() => removeGoal(g.id)}
+                      trigger={
+                        <Button
+                          size="2"
+                          variant="ghost"
+                          color="red"
+                          className="min-h-10 flex-1 sm:flex-none"
+                          aria-label={`Remove goal ${g.name}`}
+                        >
+                          Remove
+                        </Button>
+                      }
+                    />
                   </div>
                 </div>
                 {g.deadline ? (

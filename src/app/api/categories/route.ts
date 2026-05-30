@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { isSupabasePersistenceEnabled } from "@/lib/supabase/config";
 import { resolveMutationContext } from "../_shared/workbook-mutation";
-import { readJson } from "../_shared/validation";
+import { readJson, boundedString } from "../_shared/validation";
 import { logActivity } from "@/lib/budget/activity";
 
 export const dynamic = "force-dynamic";
@@ -22,12 +22,13 @@ export async function POST(req: Request) {
   const body = parsed.body;
   const id = (body.id as string | undefined) ?? crypto.randomUUID();
   const supabase = getSupabaseAdmin();
+  const name = boundedString(body.name, 120, "Untitled");
   const { error } = await supabase.from("nudge_categories").insert({
-    id, workbook_id: workbookId, name: String(body.name ?? "Untitled"),
-    color: String(body.color ?? "#94a3b8"), created_by: userId,
+    id, workbook_id: workbookId, name,
+    color: boundedString(body.color, 32, "#94a3b8"), created_by: userId,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  await logActivity(workbookId, userId, "created", "category", id, `added category ${String(body.name ?? "Untitled")}`);
+  await logActivity(workbookId, userId, "created", "category", id, `added category ${name}`);
   return NextResponse.json({ id });
 }
 
@@ -40,8 +41,8 @@ export async function PATCH(req: Request) {
   if (!body.id) return NextResponse.json({ error: "id required" }, { status: 400 });
   const id = String(body.id);
   const patch: Record<string, unknown> = {};
-  if (body.name !== undefined) patch.name = String(body.name);
-  if (body.color !== undefined) patch.color = String(body.color);
+  if (body.name !== undefined) patch.name = boundedString(body.name, 120, "Untitled");
+  if (body.color !== undefined) patch.color = boundedString(body.color, 32, "#94a3b8");
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.from("nudge_categories").update(patch).eq("id", id).eq("workbook_id", workbookId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

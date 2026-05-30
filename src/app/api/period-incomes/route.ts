@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { isSupabasePersistenceEnabled } from "@/lib/supabase/config";
 import { resolveMutationContext } from "../_shared/workbook-mutation";
 import { readJson, nonNegativeNumber } from "../_shared/validation";
+import { assertCurrentPeriod } from "../_shared/period-guard";
 import { userIsWorkbookMember } from "@/lib/budget/workbook-access";
 import { logActivity } from "@/lib/budget/activity";
 
@@ -17,8 +18,9 @@ export async function PATCH(req: Request) {
   const body = parsed.body;
   if (!body.periodId || !body.whopUserId) return NextResponse.json({ error: "periodId+whopUserId required" }, { status: 400 });
   const supabase = getSupabaseAdmin();
-  const { data: period } = await supabase.from("nudge_periods").select("workbook_id").eq("id", body.periodId).single();
-  if (!period || period.workbook_id !== c.workbookId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  // Income plans are immutable once a period closes — only the current period is editable.
+  const periodErr = await assertCurrentPeriod(c.workbookId, String(body.periodId));
+  if (periodErr) return periodErr;
   // Only let members set income rows for actual members of this workbook (no arbitrary user-id injection).
   if (!(await userIsWorkbookMember(String(body.whopUserId), c.workbookId))) {
     return NextResponse.json({ error: "Not a workbook member" }, { status: 403 });

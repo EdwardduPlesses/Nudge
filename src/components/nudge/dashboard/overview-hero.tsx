@@ -25,10 +25,10 @@ export function OverviewHero() {
   const { state } = useNudgeBudget();
   const { formatAmount } = useCurrency();
 
-  const snap = useMemo(() => computeMonthlyRemaining(state, new Date()), [state]);
+  const snap = useMemo(() => computeMonthlyRemaining(state), [state]);
   const v = useMemo(
-    () => computeMonthlySpendingVelocity(state.transactions, state.categories),
-    [state.transactions, state.categories],
+    () => computeMonthlySpendingVelocity(state.transactions, state.categories, state.period),
+    [state.transactions, state.categories, state.period],
   );
   const safe = useMemo(() => safeToSpendToday(state, new Date()), [state]);
 

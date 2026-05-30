@@ -35,6 +35,7 @@ function TxnFormFields(props: {
   goalId: string;
   setGoalId: (v: string) => void;
   jpy: boolean;
+  amountError?: string | null;
 }) {
   const showCategory = props.entryType === "expense";
 
@@ -120,10 +121,18 @@ function TxnFormFields(props: {
             enterKeyHint="done"
             autoComplete="off"
             placeholder={props.jpy ? "0" : "0.00"}
+            aria-label="Amount"
+            aria-invalid={props.amountError != null}
+            aria-describedby={props.amountError ? "txn-amount-error" : undefined}
             value={props.amount}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => props.setAmount(e.target.value)}
           />
         </TextField.Root>
+        {props.amountError ? (
+          <Text id="txn-amount-error" size="2" color="red" className="mt-2 block">
+            {props.amountError}
+          </Text>
+        ) : null}
       </div>
 
       {props.entryType === "goal" && props.goalOptions.length > 0 ? (
@@ -170,6 +179,7 @@ function TxnFormFields(props: {
           <TextField.Input
             placeholder="e.g. groceries, paycheck"
             autoComplete="off"
+            aria-label="Note"
             value={props.note}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => props.setNote(e.target.value)}
           />
@@ -184,6 +194,7 @@ export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
   const c = useCurrency();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
+  const [amountError, setAmountError] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [entryType, setEntryType] = useState<TransactionEntryType>("expense");
   const [goalFlow, setGoalFlow] = useState<GoalFlow>("to_goal");
@@ -224,6 +235,7 @@ export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
 
   function reset() {
     setAmount("");
+    setAmountError(null);
     setNote("");
     setEntryType("expense");
     setGoalFlow("to_goal");
@@ -244,7 +256,10 @@ export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
 
   function submit() {
     const amt = c.parseAmount(amount);
-    if (!Number.isFinite(amt) || amt <= 0) return;
+    if (!Number.isFinite(amt) || amt <= 0) {
+      setAmountError("Enter a valid amount");
+      return;
+    }
 
     let type: "income" | "expense";
     let cat: string | null;
@@ -252,7 +267,10 @@ export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
 
     if (entryType === "goal") {
       const pick = goalId.trim() || goalOptions[0]?.value || "";
-      if (!pick) return;
+      if (!pick) {
+        setAmountError("Add a savings goal first");
+        return;
+      }
       gid = pick;
       if (goalFlow === "to_goal") {
         type = "expense";
@@ -265,7 +283,10 @@ export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
       type = entryType;
       gid = null;
       cat = type === "expense" ? categoryId || state.categories[0]?.id || null : null;
-      if (type === "expense" && !cat) return;
+      if (type === "expense" && !cat) {
+        setAmountError("Add a category under Budgets first");
+        return;
+      }
     }
 
     addTransaction({
@@ -324,6 +345,7 @@ export function AddTransactionDialog(props: { trigger: React.ReactNode }) {
             goalId={goalId}
             setGoalId={setGoalId}
             jpy={c.currencyCode === "JPY"}
+            amountError={amountError}
           />
 
           <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -350,6 +372,7 @@ export function EditTransactionDialog(props: {
   const { state, updateTransaction } = useNudgeBudget();
   const c = useCurrency();
   const [amount, setAmount] = useState("");
+  const [amountError, setAmountError] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [entryType, setEntryType] = useState<TransactionEntryType>("expense");
   const [goalFlow, setGoalFlow] = useState<GoalFlow>("to_goal");
@@ -384,6 +407,7 @@ export function EditTransactionDialog(props: {
     if (!props.open || !tx) return;
     const fb = state.categories[0]?.id ?? "";
     setAmount(String(tx.amount));
+    setAmountError(null);
     setNote(tx.note);
     setDate(format(parseISO(tx.date), "yyyy-MM-dd"));
 
@@ -424,7 +448,10 @@ export function EditTransactionDialog(props: {
   function submit() {
     if (!tx) return;
     const amt = c.parseAmount(amount);
-    if (!Number.isFinite(amt) || amt <= 0) return;
+    if (!Number.isFinite(amt) || amt <= 0) {
+      setAmountError("Enter a valid amount");
+      return;
+    }
 
     let type: "income" | "expense";
     let cat: string | null;
@@ -432,7 +459,10 @@ export function EditTransactionDialog(props: {
 
     if (entryType === "goal") {
       const pick = goalId.trim() || goalOptions[0]?.value || "";
-      if (!pick) return;
+      if (!pick) {
+        setAmountError("Add a savings goal first");
+        return;
+      }
       gid = pick;
       if (goalFlow === "to_goal") {
         type = "expense";
@@ -445,7 +475,10 @@ export function EditTransactionDialog(props: {
       type = entryType;
       gid = null;
       cat = type === "expense" ? categoryId || state.categories[0]?.id || null : null;
-      if (type === "expense" && !cat) return;
+      if (type === "expense" && !cat) {
+        setAmountError("Add a category under Budgets first");
+        return;
+      }
     }
 
     updateTransaction(tx.id, {
@@ -497,6 +530,7 @@ export function EditTransactionDialog(props: {
             goalId={goalId}
             setGoalId={setGoalId}
             jpy={c.currencyCode === "JPY"}
+            amountError={amountError}
           />
 
           <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

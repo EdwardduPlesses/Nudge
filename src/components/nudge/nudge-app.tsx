@@ -39,7 +39,7 @@ function SyncErrorToast() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4"
+      className="nudge-sync-toast fixed inset-x-0 bottom-6 z-50 flex justify-center px-4"
     >
       <div className="atelier-card-elevated flex max-w-md items-center gap-3 rounded-full py-2.5 pl-4 pr-2.5 text-sm shadow-lg">
         <span aria-hidden style={{ color: "var(--gold)" }}>
@@ -60,6 +60,7 @@ function SyncErrorToast() {
 }
 
 export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
+  const { state } = useNudgeBudget();
   const [activeTop, setActiveTop] = useState<NudgeTopKey | "settings">("overview");
   const [activeLeaf, setActiveLeaf] = useState<NudgeLeafKey>("overview");
   const selectTop = (top: NudgeTopKey) => {
@@ -245,7 +246,9 @@ export function NudgeApp(props: { devMode: boolean; showSignOut?: boolean }) {
         onChange={selectTop}
       />
 
-      <QuickAddExpenseButton variant="fab" />
+      {/* The quick-add FAB only does anything in the editable (current) period —
+          hide it when viewing a read-only past period so it can't silently no-op. */}
+      {state.editable ? <QuickAddExpenseButton variant="fab" /> : null}
       <SyncErrorToast />
     </>
   );

@@ -5,11 +5,11 @@ import { Progress, TextField } from "frosted-ui";
 import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
 import {
-  categorySpendThisMonth,
+  categorySpendInPeriod,
   memberLabel,
   sumExpenses,
   totalPlannedIncome,
-  transactionsThisMonth,
+  transactionsInPeriod,
 } from "@/lib/budget/selectors";
 
 function CapInput(props: { categoryId: string; budgetLimitUsd: number; disabled?: boolean }) {
@@ -120,11 +120,11 @@ export function BudgetsTab() {
     setIncomeDraft(String(myIncome));
   }, [myIncome]);
 
-  const monthTx = useMemo(
-    () => transactionsThisMonth(state.transactions, new Date()),
-    [state.transactions],
+  const periodTx = useMemo(
+    () => transactionsInPeriod(state.transactions, state.period),
+    [state.transactions, state.period],
   );
-  const spent = useMemo(() => sumExpenses(monthTx), [monthTx]);
+  const spent = useMemo(() => sumExpenses(periodTx), [periodTx]);
   const totalBudget = state.categories.reduce((s, cat) => s + cat.budgetLimit, 0);
   const budgetUsedRatio =
     totalBudget > 0 ? Math.min(1, spent / totalBudget) : spent > 0 ? 1 : 0;
@@ -309,7 +309,7 @@ export function BudgetsTab() {
           </div>
         </div>
         {state.categories.map((cat) => {
-          const spent = categorySpendThisMonth(cat.id, state.transactions, new Date());
+          const spent = categorySpendInPeriod(cat.id, state.transactions);
           const pct = cat.budgetLimit > 0 ? Math.min(100, (spent / cat.budgetLimit) * 100) : 0;
           return (
             <article key={cat.id} className="atelier-card" style={{ padding: "1.1rem 1.25rem" }}>

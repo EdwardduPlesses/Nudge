@@ -47,7 +47,7 @@ export function CategoryHealthList(props: { transactions?: Transaction[] }) {
   const { formatAmount } = useCurrency();
 
   const rows = useMemo(
-    () => computeCategoryHealthRows(state, new Date(), props.transactions),
+    () => computeCategoryHealthRows(state, props.transactions),
     [state, props.transactions],
   );
 
