@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Callout, Dialog, Progress, SegmentedControl, TextField } from "frosted-ui";
 import { NudgeListSkeleton } from "@/components/nudge/content-skeleton";
+import { ConfirmButton } from "@/components/nudge/confirm-button";
 import { useCurrency } from "@/context/currency-context";
 import { nudgeBudgetFetchInit, useNudgeBudget } from "@/context/nudge-budget-context";
 import {
@@ -589,16 +590,23 @@ export function DebtsTab() {
                     >
                       Edit
                     </Button>
-                    <Button
-                      size="2"
-                      variant="ghost"
-                      color="red"
-                      className="min-h-10 flex-1 sm:flex-none"
-                      onClick={() => void removeDebt(d.id)}
-                      aria-label={`Remove debt ${d.name}`}
-                    >
-                      Remove
-                    </Button>
+                    <ConfirmButton
+                      title="Remove debt?"
+                      description="This permanently deletes this debt and its balance/APR details."
+                      confirmLabel="Remove"
+                      onConfirm={() => void removeDebt(d.id)}
+                      trigger={
+                        <Button
+                          size="2"
+                          variant="ghost"
+                          color="red"
+                          className="min-h-10 flex-1 sm:flex-none"
+                          aria-label={`Remove debt ${d.name}`}
+                        >
+                          Remove
+                        </Button>
+                      }
+                    />
                   </div>
                 </div>
 

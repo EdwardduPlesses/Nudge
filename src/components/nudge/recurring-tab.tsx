@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge, Button, Callout, Select, Switch, Text, TextField } from "frosted-ui";
 import { NudgeListSkeleton } from "@/components/nudge/content-skeleton";
+import { ConfirmButton } from "@/components/nudge/confirm-button";
 import { useCurrency } from "@/context/currency-context";
 import { nudgeBudgetFetchInit, useNudgeBudget } from "@/context/nudge-budget-context";
 
@@ -70,16 +71,17 @@ function ItemRow(props: {
               {item.active ? "Active" : "Paused"}
             </Text>
           </label>
-          <Button
-            type="button"
-            variant="soft"
-            color="red"
-            size="2"
-            disabled={props.busy}
-            onClick={() => props.onRemove(item.id)}
-          >
-            Remove
-          </Button>
+          <ConfirmButton
+            title="Remove recurring item?"
+            description="This stops it from being added to future periods."
+            confirmLabel="Remove"
+            onConfirm={() => props.onRemove(item.id)}
+            trigger={
+              <Button type="button" variant="soft" color="red" size="2" disabled={props.busy}>
+                Remove
+              </Button>
+            }
+          />
         </div>
       </div>
     </div>

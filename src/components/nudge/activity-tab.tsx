@@ -8,6 +8,7 @@ import {
   EditTransactionDialog,
 } from "@/components/nudge/add-transaction-dialog";
 import { ActivityFeed } from "@/components/nudge/activity-feed";
+import { ConfirmButton } from "@/components/nudge/confirm-button";
 import { MemberBadge } from "@/components/nudge/member-badge";
 import { useCurrency } from "@/context/currency-context";
 import { useNudgeBudget } from "@/context/nudge-budget-context";
@@ -351,15 +352,22 @@ export function ActivityTab() {
                           >
                             Edit
                           </Button>
-                          <Button
-                            size="2"
-                            variant="soft"
-                            color="red"
-                            className="min-h-10 w-full sm:w-auto"
-                            onClick={() => removeTransaction(t.id)}
-                          >
-                            Remove
-                          </Button>
+                          <ConfirmButton
+                            title="Remove transaction?"
+                            description="This permanently deletes the entry and updates your totals."
+                            confirmLabel="Remove"
+                            onConfirm={() => removeTransaction(t.id)}
+                            trigger={
+                              <Button
+                                size="2"
+                                variant="soft"
+                                color="red"
+                                className="min-h-10 w-full sm:w-auto"
+                              >
+                                Remove
+                              </Button>
+                            }
+                          />
                         </div>
                       </div>
                     </div>
