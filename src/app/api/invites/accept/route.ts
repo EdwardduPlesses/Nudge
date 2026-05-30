@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies, headers } from "next/headers";
-import { getCurrentUser } from "@/lib/auth/current-user";
+import { getVerifiedCurrentUser } from "@/lib/auth/current-user";
 import { isSupabasePersistenceEnabled } from "@/lib/supabase/config";
 import { acceptInvite, isValidAcceptMode } from "@/lib/budget/sharing";
 import { readJson } from "../../_shared/validation";
@@ -10,7 +10,9 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   if (!isSupabasePersistenceEnabled()) return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
   const [hdrs, cks] = await Promise.all([headers(), cookies()]);
-  const u = await getCurrentUser(hdrs, cks);
+  // Accepting an invite alters workbook membership — a write path. Use the verified
+  // resolver so a revoked Whop member can't redeem invites for the cookie's lifetime.
+  const u = await getVerifiedCurrentUser(hdrs, cks);
   if (!u) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const parsed = await readJson(req);
   if (parsed.error) return parsed.error;

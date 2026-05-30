@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { isSupabasePersistenceEnabled } from "@/lib/supabase/config";
 import { resolveMutationContext } from "../_shared/workbook-mutation";
-import { readJson, nonNegativeNumber } from "../_shared/validation";
+import { readJson, nonNegativeNumber, boundedString } from "../_shared/validation";
 import { logActivity } from "@/lib/budget/activity";
 
 export const dynamic = "force-dynamic";
@@ -22,14 +22,15 @@ export async function POST(req: Request) {
   const body = parsed.body;
   const id = (body.id as string | undefined) ?? crypto.randomUUID();
   const supabase = getSupabaseAdmin();
+  const name = boundedString(body.name, 120, "Goal");
   const { error } = await supabase.from("nudge_goals").insert({
-    id, workbook_id: workbookId, name: String(body.name ?? "Goal"),
+    id, workbook_id: workbookId, name,
     target_amount: nonNegativeNumber(body.targetAmount),
     saved_amount: nonNegativeNumber(body.savedAmount),
     deadline: body.deadline ?? null, created_by: userId,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  await logActivity(workbookId, userId, "created", "goal", id, `created goal ${String(body.name ?? "Goal")}`);
+  await logActivity(workbookId, userId, "created", "goal", id, `created goal ${name}`);
   return NextResponse.json({ id });
 }
 
@@ -42,7 +43,7 @@ export async function PATCH(req: Request) {
   if (!body.id) return NextResponse.json({ error: "id required" }, { status: 400 });
   const id = String(body.id);
   const patch: Record<string, unknown> = {};
-  if (body.name !== undefined) patch.name = String(body.name);
+  if (body.name !== undefined) patch.name = boundedString(body.name, 120, "Goal");
   if (body.targetAmount !== undefined) patch.target_amount = nonNegativeNumber(body.targetAmount);
   if (body.savedAmount !== undefined) patch.saved_amount = nonNegativeNumber(body.savedAmount);
   if (body.deadline !== undefined) patch.deadline = body.deadline;

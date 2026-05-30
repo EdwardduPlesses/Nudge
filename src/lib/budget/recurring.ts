@@ -83,6 +83,16 @@ export async function materializeRecurring(
   await supabase.from("nudge_transactions").upsert(rows, { onConflict: "workbook_id,id", ignoreDuplicates: true });
 }
 
+/** Day a recurring item fires within a period: integer 1..28, or null. The client
+ *  clamps this, but the API is the trust boundary — an out-of-range value would
+ *  otherwise be silently coerced to the period's last/first day at materialize time. */
+function clampDayOfPeriod(value: unknown): number | null {
+  if (value == null) return null;
+  const n = Math.trunc(Number(value));
+  if (!Number.isFinite(n)) return null;
+  return Math.min(28, Math.max(1, n));
+}
+
 export async function createRecurring(
   workbookId: string,
   ownerUserId: string,
@@ -99,8 +109,8 @@ export async function createRecurring(
       amount: Math.max(0, Number(body.amount ?? 0)),
       category_id: body.categoryId ?? null,
       goal_id: body.goalId ?? null,
-      note: String(body.note ?? ""),
-      day_of_period: body.dayOfPeriod ?? null,
+      note: String(body.note ?? "").slice(0, 1000),
+      day_of_period: clampDayOfPeriod(body.dayOfPeriod),
       owner_user_id: ownerUserId,
       active: body.active ?? true,
     })
@@ -117,8 +127,8 @@ export async function updateRecurring(workbookId: string, id: string, body: Part
   if (body.amount !== undefined) patch.amount = Math.max(0, Number(body.amount));
   if (body.categoryId !== undefined) patch.category_id = body.categoryId;
   if (body.goalId !== undefined) patch.goal_id = body.goalId;
-  if (body.note !== undefined) patch.note = String(body.note);
-  if (body.dayOfPeriod !== undefined) patch.day_of_period = body.dayOfPeriod;
+  if (body.note !== undefined) patch.note = String(body.note).slice(0, 1000);
+  if (body.dayOfPeriod !== undefined) patch.day_of_period = clampDayOfPeriod(body.dayOfPeriod);
   if (body.active !== undefined) patch.active = body.active;
   const { error } = await supabase.from("nudge_recurring_items").update(patch).eq("id", id).eq("workbook_id", workbookId);
   if (error) throw error;
