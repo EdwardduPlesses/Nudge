@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { periodRangeFor, nextPeriodStart, clampAnchorDay } from "./period-math";
+import { periodRangeFor, clampAnchorDay, planPeriodsToCreate } from "./period-math";
 import { materializeRecurring } from "./recurring";
 
 export interface PeriodRow {
@@ -48,22 +48,29 @@ export async function ensureCurrentPeriod(
   const found = periods.find((p) => p.startDate === target.start);
   if (found) return found;
 
-  const latest = periods[0] ?? null;
+  // Bounded plan that always ends at today's period and never overshoots past it,
+  // even when the anchor day changed and shifted the grid (see planPeriodsToCreate).
+  const toCreate = planPeriodsToCreate(periods.map((p) => p.startDate), anchor, todayIso);
 
-  let cursorStart = latest ? nextPeriodStart(latest.startDate, anchor) : target.start;
+  // Snapshot income/limits forward from the most recent period that starts before the
+  // first new one (sorted descending → first match is the closest prior period).
+  const firstNew = toCreate[0] ?? target.start;
+  let snapshotFrom: PeriodRow | null =
+    periods
+      .filter((p) => p.startDate < firstNew)
+      .sort((a, b) => (a.startDate < b.startDate ? 1 : -1))[0] ?? null;
+
   let last: PeriodRow | null = null;
-  let snapshotFrom = latest;
-  for (let i = 0; i < 240; i++) {
-    const range = periodRangeFor(cursorStart, anchor);
+  for (const start of toCreate) {
+    const range = periodRangeFor(start, anchor);
     const created = await insertPeriod(workbookId, range.start, range.end);
     if (snapshotFrom) await copySnapshot(snapshotFrom.id, created.id);
     await materializeRecurring(workbookId, { id: created.id, startDate: created.startDate, endDate: created.endDate });
     last = created;
     snapshotFrom = created;
-    if (range.start === target.start) break;
-    cursorStart = nextPeriodStart(range.start, anchor);
   }
   if (!last) {
+    // Defensive: the plan always ends at today's period, but never return null.
     last = await insertPeriod(workbookId, target.start, target.end);
     await materializeRecurring(workbookId, { id: last.id, startDate: last.startDate, endDate: last.endDate });
   }
